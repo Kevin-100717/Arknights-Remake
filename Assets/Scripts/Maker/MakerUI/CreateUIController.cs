@@ -1,14 +1,18 @@
 using GameData.EnemyData;
 using GameData.MapData;
 using Newtonsoft.Json;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class CreateUIController : MonoBehaviour
 {
+    [DllImport("User32.dll", SetLastError = true, ThrowOnUnmappableChar = true, CharSet = CharSet.Auto)]
+    public static extern int MessageBox(IntPtr handle, String message, String title, int type);
     public static CreateUIController instance;
     public string enemyDataFile;
     public InputField enemySearchBar;
@@ -21,10 +25,41 @@ public class CreateUIController : MonoBehaviour
     public InputField widthInput;
     public InputField heightInput;
     public GameObject panel;
+    public GameObject panel1;
+    public List<GameObject> routeBtn;
+    public GameObject routeBtnPrefab;
+    public GameObject routeAndEnemyEditPanel;
+    public RectTransform routeListContent;
+    private bool panelActionFlag = true;
+    public int width;
+    public int height;
+    public List<GameObject> routeUIItems;
     // Start is called before the first frame update
     void Start()
     {
         instance = this;
+        StartCoroutine(startui());
+    }
+    IEnumerator startui()
+    {
+        panel.SetActive(true);
+        panel1.SetActive(false);
+        yield return null;
+        if (File.Exists(Application.streamingAssetsPath + "/exports/temp.json") && MessageBox(IntPtr.Zero, "检测到有存在的地图草稿，是否加载，若确认则加载，否则覆盖写入新地图（请及时备份）", "确认", 1) == 1)
+        {
+            loadTemp();
+        }
+        else
+        {
+            panel.SetActive(true);
+            panel1.SetActive(false);
+        }
+    }
+    void loadTemp()
+    {
+        MakerCore.instance.LoadMap();
+        panel.SetActive(false);
+        panel1.SetActive(true);
     }
     public void SearchEnemy()
     {
@@ -100,7 +135,6 @@ public class CreateUIController : MonoBehaviour
     }
     public void CreateMap()
     {
-        int width, height;
         try
         {
             width = int.Parse(widthInput.text);
@@ -112,5 +146,30 @@ public class CreateUIController : MonoBehaviour
         }
         MakerCore.instance.CreateNode(width, height);
         panel.SetActive(false);
+        panel1.SetActive(true);
+    }
+    public void HideOrShowEditPanel()
+    {
+        panelActionFlag = !panelActionFlag;
+        routeAndEnemyEditPanel.SetActive(panelActionFlag);
+    }
+    public void NewRouteItem()
+    {
+        float h = 51.449f;
+        GameObject rig = Instantiate(routeBtnPrefab, routeListContent);
+        rig.GetComponent<RouteUI>().routeID = routeUIItems.Count;
+        routeUIItems.Add(rig);
+        routeListContent.sizeDelta = new Vector2(routeListContent.sizeDelta.x, h * routeUIItems.Count);
+    }
+    public void RouteUIClicked(GameObject g)
+    {
+        foreach (GameObject rui in routeUIItems) { 
+            rui.GetComponent<RouteUI>().SwitchColor(rui == g);
+        }
+        MakerCore.instance.EnterEditRouteMode(g.GetComponent<RouteUI>().routeID);
+    }
+    public void SetRouteDataByRouteUIId(int rid,RouteEntity re)
+    {
+        routeUIItems[rid].GetComponent<RouteUI>().routeData = re;
     }
 }

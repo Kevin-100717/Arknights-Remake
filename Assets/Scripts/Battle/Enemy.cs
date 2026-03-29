@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Spine.Unity;
 using DG.Tweening;
+
 public class Enemy : MonoBehaviour
 {
     [Header("Movement")]
@@ -24,12 +25,16 @@ public class Enemy : MonoBehaviour
     public EnemyState state;
     public Character atk_target;
 
+    // 新增：用于记录进入Shoot状态前的状态
+    public EnemyState stateBeforeShoot = EnemyState.Idle;
+
     private int currentPathIndex = -1;
-    private float waitTime;
+    private float pathWaitTime; // 路径等待时间专用计时器
+    private float attackIntervalTimer; // 攻击间隔专用计时器
     private SpineAnimationData currentAnim;
     private bool hasReachedEnd = false;
     private bool onAttack = false;
-    private bool isDead = false;
+    public bool isDead = false;
     private Dictionary<EnemyState, SpineAnimationData> animationMap;
     private EnemyState stateBeforeAttack = EnemyState.Idle; // 记录攻击前的状态
 
@@ -112,13 +117,21 @@ public class Enemy : MonoBehaviour
 
         if (currentAnimationName == GetAnimationName(EnemyState.Attack))
         {
-            waitTime = enemyData.atk_interval;
+            attackIntervalTimer = enemyData.atk_interval;
             state = EnemyState.Attack_interval; // 改为Attack_interval状态
         }
+        // 注意：Shoot 状态的完成通常不改变状态，
+        // 因为它是由 Shoot.cs 脚本控制返回原状态的。
         else if (currentAnimationName == GetAnimationName(EnemyState.Die))
         {
             isDead = true;
             Destroy(gameObject);
+        }
+        // Shoot动画完成时的处理
+        else if (currentAnimationName == GetAnimationName(EnemyState.Shoot))
+        {
+            // Shoot动画完成后自动回到之前状态已在Shoot.cs中处理
+            // 这里可以留空或者做额外处理
         }
     }
 
@@ -162,6 +175,12 @@ public class Enemy : MonoBehaviour
         isDead = true;
         enemyData.hp_current = 0;
         state = EnemyState.Die;
+
+        // 重置所有与攻击相关的状态和引用
+        atk_target = null;
+        onAttack = false;
+        stateBeforeAttack = EnemyState.Idle;
+        stateBeforeShoot = EnemyState.Idle; // 也重置射击前状态
 
         if (hpUIController != null)
             hpUIController.hpBar.gameObject.SetActive(false);
@@ -254,7 +273,7 @@ public class Enemy : MonoBehaviour
 
             case "WAIT_FOR_SECONDS":
                 state = EnemyState.Idle;
-                waitTime = checkpoint.Time;
+                pathWaitTime = checkpoint.Time; // 使用专用计时器
                 break;
         }
     }
@@ -299,12 +318,24 @@ public class Enemy : MonoBehaviour
                 ProcessIdle();
                 break;
 
+            case EnemyState.EmptyIdle: // 新增状态处理
+                ProcessEmptyIdle();
+                break;
+
             case EnemyState.Attack_interval: // 处理Attack_interval状态
                 ProcessAttackInterval();
                 break;
 
             case EnemyState.Attack:
                 ProcessAttack();
+                break;
+
+            case EnemyState.Shoot: // 新增状态处理
+                ProcessShoot();
+                break;
+
+            case EnemyState.Die:
+                // Die状态不需要特殊处理，动画完成后会Destroy
                 break;
         }
     }
@@ -335,9 +366,9 @@ public class Enemy : MonoBehaviour
 
     void ProcessIdle()
     {
-        if (waitTime > 0)
+        if (pathWaitTime > 0)
         {
-            waitTime -= Time.deltaTime;
+            pathWaitTime -= Time.deltaTime;
         }
         else
         {
@@ -345,14 +376,30 @@ public class Enemy : MonoBehaviour
         }
     }
 
+    // 新增: EmptyIdle 状态下的处理逻辑
+    void ProcessEmptyIdle()
+    {
+        // 在此状态下，敌人什么都不做，只是站着不动。
+        // 可以在这里添加一些 idle 的行为，比如播放 idle 动画。
+        // 当前逻辑是空的，因为状态本身就意味着“等待”。
+    }
+
+    // 新增: Shoot 状态下的处理逻辑 (主要是动画播放)
+    void ProcessShoot()
+    {
+        // 动画播放由 Spine 控制，这里可以留空或做一些辅助逻辑
+        // 例如检查是否仍在范围内等，但这主要由 Shoot.cs 脚本管理
+    }
+
+
     void ProcessAttackInterval()
     {
         // Attack_interval倒计时
-        waitTime -= Time.deltaTime;
-        if (waitTime <= 0)
+        attackIntervalTimer -= Time.deltaTime;
+        if (attackIntervalTimer <= 0)
         {
             // 检查目标是否还存在且存活
-            if (atk_target != null && atk_target.state != CharacterState.Die)
+            if (atk_target != null && !atk_target.isDead && atk_target.state != CharacterState.Die)
             {
                 state = EnemyState.Attack; // 倒计时结束，继续攻击
             }
@@ -374,6 +421,16 @@ public class Enemy : MonoBehaviour
     public void DoDamage()
     {
         if (isDead || atk_target == null) return;
+
+        // 再次检查目标是否存活，防止在动画播放期间目标死亡
+        if (atk_target.isDead || atk_target.state == CharacterState.Die)
+        {
+            // 目标已死亡，停止攻击并恢复状态
+            state = stateBeforeAttack;
+            atk_target = null;
+            onAttack = false;
+            return;
+        }
 
         atk_target.TakeDamage(enemyData.damage);
     }
@@ -399,13 +456,26 @@ public class Enemy : MonoBehaviour
                 character.charData.current_def_num < character.charData.def_num &&
                 character.state != CharacterState.Die)
             {
+                // 新增逻辑: 检查敌人是否有近战能力
+                if (!enemyData.haveNear)
+                {
+                    // 没有近战能力，被阻挡时进入 EmptyIdle 状态
+                    stateBeforeAttack = state;
+                    character.charData.current_def_num++; // 占用阻挡位
+                    atk_target = character; // 保留引用以便在退出时释放
+                    state = EnemyState.EmptyIdle; // 切换到空闲状态
+                    onAttack = false; // 不进行攻击
+                    return; // 结束，不执行下面的攻击逻辑
+                }
+
+                // 有近战能力，执行原有攻击逻辑
                 // 记录攻击前的状态
                 stateBeforeAttack = state;
                 character.charData.current_def_num++;
                 atk_target = character;
                 state = EnemyState.Attack;
                 onAttack = true;
-                waitTime = 0;
+                attackIntervalTimer = 0; // 重置攻击间隔计时器
             }
         }
     }
@@ -419,11 +489,17 @@ public class Enemy : MonoBehaviour
             Character character = other.gameObject.GetComponent<Character>();
             if (character == atk_target)
             {
+                // 释放阻挡位
+                if (character.charData.current_def_num > 0)
+                {
+                    character.charData.current_def_num--;
+                }
+
                 atk_target = null;
                 // 恢复到攻击前的状态
                 state = stateBeforeAttack;
                 onAttack = false;
-                waitTime = 0;
+                attackIntervalTimer = 0; // 重置攻击间隔计时器
             }
         }
     }

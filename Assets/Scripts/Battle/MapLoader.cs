@@ -17,11 +17,22 @@ public class MapLoader : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        Load();
+    }
+    public void Load()
+    {
+        foreach (Transform child in root)
+        {
+            Destroy(child.gameObject);
+            Debug.Log("clear child");
+        }
         battleData = JsonConvert.DeserializeObject<BattleData>(ReadData(mapDataJsonFilePath));
         LoadMap();
-        EnemySpawner.Instance.LoadEnemyData(battleData);
+        if (EnemySpawner.Instance)
+        {
+            EnemySpawner.Instance.LoadEnemyData(battleData);
+        }
     }
-
     // Update is called once per frame
     void Update()
     {
@@ -33,7 +44,7 @@ public class MapLoader : MonoBehaviour
         List<TileEntity> tiles = mapData.Tiles;
         int x = 0;
         int y = mapData.Map.Count-1;
-        foreach (List<long> row in mapData.Map)
+        foreach (List<int> row in mapData.Map)
         {
             foreach(int cell in row)
             {
@@ -45,6 +56,7 @@ public class MapLoader : MonoBehaviour
                 }
                 else
                 {
+                    //Debug.Log("createWall");
                     t = Instantiate(wallNodePrefab, new Vector3(x, y, 0), Quaternion.identity);
                 }
                 t.transform.SetParent(root);
@@ -53,7 +65,12 @@ public class MapLoader : MonoBehaviour
             x = 0;
             y--;
         }
-
+        StartCoroutine(waitScan());
+        
+    }
+    IEnumerator waitScan()
+    {
+        yield return null;
         astarPath.Scan();
     }
     public string ReadData(string path)

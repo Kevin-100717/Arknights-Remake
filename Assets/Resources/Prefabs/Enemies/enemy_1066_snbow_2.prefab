@@ -125,6 +125,7 @@ GameObject:
   - component: {fileID: -299252190851487642}
   - component: {fileID: 5041249656139346021}
   - component: {fileID: 5912682898465912913}
+  - component: {fileID: -5496936613411277310}
   m_Layer: 0
   m_Name: enemy_1066_snbow_2
   m_TagString: Enemy
@@ -141,7 +142,7 @@ Transform:
   m_GameObject: {fileID: 3418006406629076701}
   serializedVersion: 2
   m_LocalRotation: {x: -0.258819, y: 0, z: 0, w: 0.9659259}
-  m_LocalPosition: {x: 1, y: 5, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 0.3, y: 0.3, z: 0.3}
   m_ConstrainProportionsScale: 1
   m_Children:
@@ -254,15 +255,21 @@ MonoBehaviour:
     animationName: Attack
     loop: 1
   - state: 3
-    animationName: Die
-    loop: 0
+    animationName: Idle
+    loop: 1
   - state: 0
     animationName: Move
     loop: 1
-  - state: 2
+  - state: 5
     animationName: Idle
     loop: 1
   - state: 4
+    animationName: Die
+    loop: 0
+  - state: 2
+    animationName: Attack
+    loop: 1
+  - state: 6
     animationName: Idle
     loop: 1
   spineAnimation: {fileID: 9222357701444812894}
@@ -277,6 +284,7 @@ MonoBehaviour:
     magic_def: 0
     speed: 0.9
     dieAddToCount: 1
+    haveNear: 0
     type: 0
   hpUIController:
     hpBar: {fileID: 3238620992675061167}
@@ -284,6 +292,8 @@ MonoBehaviour:
     white: {fileID: 4194253665435982464}
   state: 0
   atk_target: {fileID: 0}
+  stateBeforeShoot: 3
+  isDead: 0
 --- !u!114 &1039517677923540081
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -406,6 +416,38 @@ MonoBehaviour:
             m_StringArgument: 
             m_BoolArgument: 0
           m_CallState: 2
+  - spineEvent: OnAttack
+    unityHandler:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: -5496936613411277310}
+          m_TargetAssemblyTypeName: Shoot, Assembly-CSharp
+          m_MethodName: OnAttack
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+--- !u!114 &-5496936613411277310
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3418006406629076701}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 75099535961e0f140be8065c7712e222, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  atk_range: 1.9
+  atk_interval: 2.4
+  bulletPrefab: {fileID: 2632673872651628691, guid: f57b3547a20082349b84286729d65b8d, type: 3}
+  bone: C_Muzzle
 --- !u!1 &3599960417103944927
 GameObject:
   m_ObjectHideFlags: 0

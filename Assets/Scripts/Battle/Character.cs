@@ -4,7 +4,6 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using DG.Tweening;
-using Unity.VisualScripting;
 
 public class Character : MonoBehaviour
 {
@@ -24,7 +23,7 @@ public class Character : MonoBehaviour
     private float attackTimer;
     private List<GameObject> enemies = new List<GameObject>();
     private Dictionary<CharacterState, CharacterAnimationData> animationMap;
-    private bool isDead = false;
+    public bool isDead = false;
 
     void Awake()
     {
@@ -75,7 +74,7 @@ public class Character : MonoBehaviour
         if (currentAnimationName == GetAnimationName(CharacterState.Attack))
         {
             attackTimer = charData.atk_interval;
-            state = CharacterState.Attack_interval; // 改为Attack_interval状态
+            state = CharacterState.Attack_interval;
         }
         else if (currentAnimationName == GetAnimationName(CharacterState.Die))
         {
@@ -118,9 +117,12 @@ public class Character : MonoBehaviour
             attackTimer -= Time.deltaTime;
             if (attackTimer <= 0)
             {
-                state = CharacterState.Idle; // 倒计时结束回到Idle
+                state = CharacterState.Idle;
             }
         }
+
+        // 清理死亡的敌人
+        CleanDeadEnemies();
 
         enemies = attackController.GetEnemies();
 
@@ -128,22 +130,51 @@ public class Character : MonoBehaviour
         if (enemies.Count <= 0 || state != CharacterState.Idle)
             return;
 
-        attackTimer = charData.atk_interval;
-        state = CharacterState.Attack;
+        // 检查是否有存活的敌人
+        bool hasLivingEnemies = false;
+        foreach (GameObject enemyObj in enemies)
+        {
+            if (enemyObj != null)
+            {
+                Enemy enemy = enemyObj.GetComponent<Enemy>();
+                if (enemy != null && enemy.state != EnemyState.Die && !enemy.isDead)
+                {
+                    hasLivingEnemies = true;
+                    break;
+                }
+            }
+        }
+
+        if (hasLivingEnemies)
+        {
+            attackTimer = charData.atk_interval;
+            state = CharacterState.Attack;
+        }
+    }
+
+    void CleanDeadEnemies()
+    {
+        enemies.RemoveAll(obj => {
+            if (obj == null) return true;
+            Enemy enemy = obj.GetComponent<Enemy>();
+            return enemy == null || enemy.state == EnemyState.Die || enemy.isDead;
+        });
     }
 
     public void HandleAttack()
     {
         if (isDead) return;
 
+        CleanDeadEnemies();
+
         int attackCount = Mathf.Min(enemies.Count, charData.max_atk_num);
         for (int i = 0; i < attackCount; i++)
         {
             GameObject enemyObj = enemies[i];
-            if (enemyObj != null && !enemyObj.IsDestroyed())
+            if (enemyObj != null)
             {
                 Enemy enemy = enemyObj.GetComponent<Enemy>();
-                if (enemy != null && enemy.state != EnemyState.Die)
+                if (enemy != null && enemy.state != EnemyState.Die && !enemy.isDead)
                 {
                     enemy.TakeDamage(charData.damage);
                 }

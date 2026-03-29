@@ -3974,6 +3974,22 @@ PrefabInstance:
       propertyPath: m_Name
       value: char_017_huang
       objectReference: {fileID: 0}
+    - target: {fileID: 550949632270554937, guid: 1828fa21dac582343b3661d3f0770f15, type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1222949928884183101, guid: 1828fa21dac582343b3661d3f0770f15, type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1464203888169534210, guid: 1828fa21dac582343b3661d3f0770f15, type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2399075767150808049, guid: 1828fa21dac582343b3661d3f0770f15, type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4866621632843351616, guid: 1828fa21dac582343b3661d3f0770f15, type: 3}
       propertyPath: m_Mesh
       value: 
@@ -4016,6 +4032,14 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5582188953029547498, guid: 1828fa21dac582343b3661d3f0770f15, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5959900970395101063, guid: 1828fa21dac582343b3661d3f0770f15, type: 3}
+      propertyPath: charData.def_num
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 7543656821372897531, guid: 1828fa21dac582343b3661d3f0770f15, type: 3}
+      propertyPath: m_Layer
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []

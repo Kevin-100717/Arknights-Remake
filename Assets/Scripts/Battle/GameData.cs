@@ -12,6 +12,7 @@ namespace GameData.Game
         [SpineAnimation] public string animationName;
         public bool loop;
     }
+
     [System.Serializable]
     public class EnemyData
     {
@@ -23,6 +24,7 @@ namespace GameData.Game
         public float magic_def;
         public float speed;
         public bool dieAddToCount = true;
+        public bool haveNear = true;
         public enum EnemyType
         {
             Normal,
@@ -30,6 +32,7 @@ namespace GameData.Game
         }
         public EnemyType type;
     }
+
     [System.Serializable]
     public class HpUIController
     {
@@ -37,14 +40,18 @@ namespace GameData.Game
         public Transform red;
         public Transform white;
     }
+
     public enum EnemyState
     {
         Move,
         Attack,
+        Shoot,  // 新增: 远程攻击
         Idle,
         Die,
-        Attack_interval
+        Attack_interval,
+        EmptyIdle
     }
+
     //------------------------------------------------------
     public enum CharacterState
     {
@@ -53,6 +60,7 @@ namespace GameData.Game
         Die,
         Attack_interval
     }
+
     public enum DamageType
     {
         Physical,
@@ -60,12 +68,14 @@ namespace GameData.Game
         Real,
         Recovery
     }
+
     [System.Serializable]
     public class Damage
     {
         public float damage;
         public DamageType type;
     }
+
     [System.Serializable]
     public class CharacterData
     {
@@ -79,6 +89,7 @@ namespace GameData.Game
         public int current_def_num;
         public int def_num;
     }
+
     [System.Serializable]
     public class CharacterAnimationData
     {

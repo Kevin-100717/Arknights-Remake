@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using UnityEngine;
 
 namespace GameData.MapData
 {
@@ -64,7 +65,7 @@ namespace GameData.MapData
         public object ExcludeCharIdList { get; set; }
 
         [JsonProperty("randomSeed")]
-        public long RandomSeed { get; set; }
+        public float RandomSeed { get; set; }
 
         [JsonProperty("operaConfig")]
         public object OperaConfig { get; set; }
@@ -76,19 +77,19 @@ namespace GameData.MapData
     public class OptionsEntity
     {
         [JsonProperty("characterLimit")]
-        public long CharacterLimit { get; set; }
+        public float CharacterLimit { get; set; }
 
         [JsonProperty("maxLifePoint")]
-        public long MaxLifePoint { get; set; }
+        public float MaxLifePoint { get; set; }
 
         [JsonProperty("initialCost")]
-        public long InitialCost { get; set; }
+        public float InitialCost { get; set; }
 
         [JsonProperty("maxCost")]
-        public long MaxCost { get; set; }
+        public float MaxCost { get; set; }
 
         [JsonProperty("costIncreaseTime")]
-        public long CostIncreaseTime { get; set; }
+        public float CostIncreaseTime { get; set; }
 
         [JsonProperty("moveMultiplier")]
         public double MoveMultiplier { get; set; }
@@ -106,7 +107,7 @@ namespace GameData.MapData
         public bool IsPredefinedCardsSelectable { get; set; }
 
         [JsonProperty("maxPlayTime")]
-        public long MaxPlayTime { get; set; }
+        public float MaxPlayTime { get; set; }
 
         [JsonProperty("functionDisableMask")]
         public string FunctionDisableMask { get; set; }
@@ -118,7 +119,7 @@ namespace GameData.MapData
     public class MapDataEntity
     {
         [JsonProperty("map")]
-        public List<List<long>> Map { get; set; }
+        public List<List<int>> Map { get; set; }
 
         [JsonProperty("tiles")]
         public List<TileEntity> Tiles { get; set; }
@@ -136,27 +137,30 @@ namespace GameData.MapData
         public object LayerRects { get; set; }
     }
 
+    [System.Serializable]
     public class TileEntity
     {
         [JsonProperty("tileKey")]
-        public string TileKey { get; set; }
+        public string TileKey;
 
         [JsonProperty("heightType")]
-        public string HeightType { get; set; }
+        public string HeightType;
 
         [JsonProperty("buildableType")]
-        public string BuildableType { get; set; }
+        public string BuildableType;
 
         [JsonProperty("passableMask")]
-        public string PassableMask { get; set; }
+        public string PassableMask;
 
         [JsonProperty("playerSideMask")]
-        public string PlayerSideMask { get; set; }
+        public string PlayerSideMask;
 
         [JsonProperty("blackboard")]
+        [HideInInspector]
         public object Blackboard { get; set; }
 
         [JsonProperty("effects")]
+        [HideInInspector]
         public object Effects { get; set; }
     }
 
@@ -169,7 +173,7 @@ namespace GameData.MapData
         public string Key { get; set; }
 
         [JsonProperty("professionMask")]
-        public long ProfessionMask { get; set; }
+        public float ProfessionMask { get; set; }
 
         [JsonProperty("buildableMask")]
         public string BuildableMask { get; set; }
@@ -184,7 +188,7 @@ namespace GameData.MapData
         public string Key { get; set; }
 
         [JsonProperty("value")]
-        public long Value { get; set; }
+        public float Value { get; set; }
 
         [JsonProperty("valueStr")]
         public object ValueStr { get; set; }
@@ -226,10 +230,10 @@ namespace GameData.MapData
     public class PositionEntity
     {
         [JsonProperty("row")]
-        public long Row { get; set; }
+        public float Row { get; set; }
 
         [JsonProperty("col")]
-        public long Col { get; set; }
+        public float Col { get; set; }
     }
 
     public class SpawnRandomRangeEntity
@@ -244,10 +248,10 @@ namespace GameData.MapData
     public class SpawnOffsetEntity
     {
         [JsonProperty("x")]
-        public long X { get; set; }
+        public float X { get; set; }
 
         [JsonProperty("y")]
-        public long Y { get; set; }
+        public float Y { get; set; }
     }
 
     public class CheckpointEntity
@@ -256,7 +260,7 @@ namespace GameData.MapData
         public string Type { get; set; }
 
         [JsonProperty("time")]
-        public long Time { get; set; }
+        public float Time { get; set; }
 
         [JsonProperty("position")]
         public PositionEntity Position { get; set; }
@@ -268,16 +272,16 @@ namespace GameData.MapData
         public bool RandomizeReachOffset { get; set; }
 
         [JsonProperty("reachDistance")]
-        public long ReachDistance { get; set; }
+        public float ReachDistance { get; set; }
     }
 
     public class ReachOffsetEntity
     {
         [JsonProperty("x")]
-        public long X { get; set; }
+        public float X { get; set; }
 
         [JsonProperty("y")]
-        public long Y { get; set; }
+        public float Y { get; set; }
     }
 
     public class EnemyDbRefEntity
@@ -289,7 +293,7 @@ namespace GameData.MapData
         public string Id { get; set; }
 
         [JsonProperty("level")]
-        public long Level { get; set; }
+        public float Level { get; set; }
 
         [JsonProperty("overwrittenData")]
         public object OverwrittenData { get; set; }
@@ -298,13 +302,13 @@ namespace GameData.MapData
     public class WaveEntity
     {
         [JsonProperty("preDelay")]
-        public long PreDelay { get; set; }
+        public float PreDelay { get; set; }
 
         [JsonProperty("postDelay")]
-        public long PostDelay { get; set; }
+        public float PostDelay { get; set; }
 
         [JsonProperty("maxTimeWaitingForNextWave")]
-        public long MaxTimeWaitingForNextWave { get; set; }
+        public float MaxTimeWaitingForNextWave { get; set; }
 
         [JsonProperty("fragments")]
         public List<FragmentEntity> Fragments { get; set; }
@@ -316,7 +320,7 @@ namespace GameData.MapData
     public class FragmentEntity
     {
         [JsonProperty("preDelay")]
-        public long PreDelay { get; set; }
+        public float PreDelay { get; set; }
 
         [JsonProperty("actions")]
         public List<ActionEntity> Actions { get; set; }
@@ -334,16 +338,16 @@ namespace GameData.MapData
         public string Key { get; set; }
 
         [JsonProperty("count")]
-        public long Count { get; set; }
+        public float Count { get; set; }
 
         [JsonProperty("preDelay")]
-        public long PreDelay { get; set; }
+        public float PreDelay { get; set; }
 
         [JsonProperty("interval")]
-        public long Interval { get; set; }
+        public float Interval { get; set; }
 
         [JsonProperty("routeIndex")]
-        public long RouteIndex { get; set; }
+        public float RouteIndex { get; set; }
 
         [JsonProperty("blockFragment")]
         public bool BlockFragment { get; set; }
@@ -373,7 +377,7 @@ namespace GameData.MapData
         public string RefreshType { get; set; }
 
         [JsonProperty("weight")]
-        public long Weight { get; set; }
+        public float Weight { get; set; }
 
         [JsonProperty("dontBlockWave")]
         public bool DontBlockWave { get; set; }
@@ -397,7 +401,7 @@ namespace GameData.MapData
     public class PhaseEntity
     {
         [JsonProperty("preDelay")]
-        public long PreDelay { get; set; }
+        public float PreDelay { get; set; }
 
         [JsonProperty("actions")]
         public List<ActionEntity> Actions { get; set; }
@@ -442,10 +446,10 @@ namespace GameData.MapData
         public InstEntity Inst { get; set; }
 
         [JsonProperty("skillIndex")]
-        public long SkillIndex { get; set; }
+        public float SkillIndex { get; set; }
 
         [JsonProperty("mainSkillLvl")]
-        public long MainSkillLvl { get; set; }
+        public float MainSkillLvl { get; set; }
 
         [JsonProperty("skinId")]
         public object SkinId { get; set; }
@@ -463,15 +467,15 @@ namespace GameData.MapData
         public string CharacterKey { get; set; }
 
         [JsonProperty("level")]
-        public long Level { get; set; }
+        public float Level { get; set; }
 
         [JsonProperty("phase")]
         public string Phase { get; set; }
 
         [JsonProperty("favorPoint")]
-        public long FavorPoint { get; set; }
+        public float FavorPoint { get; set; }
 
         [JsonProperty("potentialRank")]
-        public long PotentialRank { get; set; }
+        public float PotentialRank { get; set; }
     }
 }

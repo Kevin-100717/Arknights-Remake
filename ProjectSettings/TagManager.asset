@@ -8,6 +8,7 @@ TagManager:
   - AttackRange
   - Enemy
   - Character
+  - node_create
   layers:
   - Default
   - TransparentFX
@@ -16,8 +17,8 @@ TagManager:
   - Water
   - UI
   - Point
-  - 
-  - 
+  - Mk_Node
+  - Character
   - 
   - 
   - 
