@@ -1,9 +1,11 @@
 using GameData.MapData;
 using Newtonsoft.Json;
+using Pathfinding;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using UnityEngine;
 
 public class MakerCore : MonoBehaviour
@@ -20,11 +22,14 @@ public class MakerCore : MonoBehaviour
     private bool routeFlag = false;
     public GameObject routeTagPrefab;
     public Transform checkpointTagFrame;
+    public LineRenderer routeLineRenderer;
+    public Seeker routeSeeker;
     public enum EditMode
     {
         Normal,
         EditEnemy,
         EditRoute,
+        ViewRoute,
     }
     public EditMode editMode = EditMode.Normal;
     // Start is called before the first frame update
@@ -55,6 +60,10 @@ public class MakerCore : MonoBehaviour
         int height = battleData.MapData.Map.Count;
         CreateUIController.instance.width = width;
         CreateUIController.instance.height = height;
+        foreach(RouteEntity ret in battleData.Routes)
+        {
+            CreateUIController.instance.LoadRouteItem(ret);
+        }
         CreateNode(width, height);
         for(int i=0;i<nodeObj.Count;i++)
         {
@@ -105,6 +114,7 @@ public class MakerCore : MonoBehaviour
                     routeEdited.EndPosition = ckpte.Position;
                     CreateUIController.instance.SetRouteDataByRouteUIId(editRouteID, routeEdited);
                     editMode = EditMode.Normal;
+                    ClearRouteLine();
                 }
                 if (Input.GetMouseButtonDown(0))
                 {
@@ -125,11 +135,95 @@ public class MakerCore : MonoBehaviour
                             ckpt.Position = vecToPos(pos);
                             routeEdited.Checkpoints.Add(ckpt);
                             CreateCheckPointTTag(pointType, pos, ckpt.Time);
+                            RefreshLineByCkpt();
                         }
                     }
                 }
                 break;
+            case EditMode.ViewRoute:
+                if (Input.GetKeyDown(KeyCode.Escape))
+                {
+                    foreach (Transform child in checkpointTagFrame)
+                    {
+                        Destroy(child.gameObject);
+                    }
+                    ClearRouteLine();
+                    editMode = EditMode.Normal;
+                }
+                if (Input.GetKeyDown(KeyCode.E))
+                {
+                    routeEdited = new RouteEntity
+                    {
+                        MotionMode = "WALK",
+                        SpawnOffset = new SpawnOffsetEntity { X = 0, Y = 0 },
+                        SpawnRandomRange = new SpawnRandomRangeEntity { X = 0, Y = 0 },
+                        AllowDiagonalMove = true,
+                        VisitEveryCheckPoint = false,
+                        VisitEveryNodeCenter = false,
+                        VisitEveryTileCenter = false,
+                        StartPosition = new PositionEntity(),
+                        EndPosition = new PositionEntity(),
+                        Checkpoints = new List<CheckpointEntity>()
+                    };
+                    routeFlag = false;
+                    foreach (Transform child in checkpointTagFrame)
+                    {
+                        Destroy(child.gameObject);
+                    }
+                    ClearRouteLine();
+                    editMode = EditMode.EditRoute;
+                }
+                break;
         }
+    }
+    void RefreshLineByCkpt()
+    {
+        // 按startPosition+checkpoints顺序依次两两相连
+        List<Vector3> points = new List<Vector3>();
+        points.Add(new Vector3(routeEdited.StartPosition.Col, routeEdited.StartPosition.Row, 0));
+        foreach (var ckpt in routeEdited.Checkpoints)
+        {
+            points.Add(new Vector3(ckpt.Position.Col, ckpt.Position.Row, 0));
+        }
+        if (editMode == EditMode.ViewRoute)
+        {
+            points.Add(new Vector3(routeEdited.EndPosition.Col, routeEdited.EndPosition.Row, 0));
+        }
+        StartCoroutine(DrawRouteLineSequential(points));
+    }
+
+    IEnumerator DrawRouteLineSequential(List<Vector3> points)
+    {
+        if (points.Count < 2)
+        {
+            ClearRouteLine();
+            yield break;
+        }
+        List<Vector3> fullPath = new List<Vector3>();
+        for (int i = 0; i < points.Count - 1; i++)
+        {
+            bool finished = false;
+            Pathfinding.Path path = null;
+            routeSeeker.StartPath(points[i], points[i + 1], p => {
+                path = p;
+                finished = true;
+            });
+            while (!finished)
+                yield return null;
+            if (path.error || path.vectorPath == null || path.vectorPath.Count == 0)
+                continue;
+            // 避免重复点
+            if (fullPath.Count > 0 && fullPath[fullPath.Count - 1] == path.vectorPath[0])
+                fullPath.AddRange(path.vectorPath.Skip(1));
+            else
+                fullPath.AddRange(path.vectorPath);
+        }
+        routeLineRenderer.positionCount = fullPath.Count;
+        routeLineRenderer.SetPositions(fullPath.ToArray());
+    }
+    void ClearRouteLine()
+    {
+        routeLineRenderer.positionCount = 0;
     }
     void CreateCheckPointTTag(int type,Vector3 pos,float wt)
     {
@@ -204,27 +298,51 @@ public class MakerCore : MonoBehaviour
             return readData;
         }
     }
-    public void EnterEditRouteMode(int eid)
+    public void EnterEditRouteMode(int eid,bool flag,RouteEntity re = null)
     {
-        routeEdited = new RouteEntity
+        if (flag)
         {
-            MotionMode = "WALK",
-            SpawnOffset = new SpawnOffsetEntity { X = 0, Y = 0 },
-            SpawnRandomRange = new SpawnRandomRangeEntity { X = 0, Y = 0 },
-            AllowDiagonalMove = true,
-            VisitEveryCheckPoint = false,
-            VisitEveryNodeCenter = false,
-            VisitEveryTileCenter = false,
-            StartPosition = new PositionEntity(),
-            EndPosition = new PositionEntity(),
-            Checkpoints = new List<CheckpointEntity>()
-        };
-        routeFlag = false;
-        editRouteID = eid;
-        foreach (Transform child in checkpointTagFrame)
-        {
-            Destroy(child.gameObject);
+            routeEdited = new RouteEntity
+            {
+                MotionMode = "WALK",
+                SpawnOffset = new SpawnOffsetEntity { X = 0, Y = 0 },
+                SpawnRandomRange = new SpawnRandomRangeEntity { X = 0, Y = 0 },
+                AllowDiagonalMove = true,
+                VisitEveryCheckPoint = false,
+                VisitEveryNodeCenter = false,
+                VisitEveryTileCenter = false,
+                StartPosition = new PositionEntity(),
+                EndPosition = new PositionEntity(),
+                Checkpoints = new List<CheckpointEntity>()
+            };
+            routeFlag = false;
+            editRouteID = eid;
+            foreach (Transform child in checkpointTagFrame)
+            {
+                Destroy(child.gameObject);
+            }
+            ClearRouteLine();
+            editMode = EditMode.EditRoute;
         }
-        editMode = EditMode.EditRoute;
+        else
+        {
+            routeEdited = re;
+            routeFlag = true;
+            editRouteID = eid;
+            foreach (Transform child in checkpointTagFrame)
+            {
+                Destroy(child.gameObject);
+            }
+            ClearRouteLine();
+            Vector3 startPos = new Vector3(routeEdited.StartPosition.Col, routeEdited.StartPosition.Row, 0);
+            CreateCheckPointTTag(0, startPos, 0);
+            foreach (var ckpt in routeEdited.Checkpoints)
+            {
+                Vector3 pos = new Vector3(ckpt.Position.Col, ckpt.Position.Row, 0);
+                CreateCheckPointTTag(CheckPointConfigUI.instance.getIndexByCkpt(ckpt), pos, ckpt.Time);
+            }
+            editMode = EditMode.ViewRoute;
+            RefreshLineByCkpt();
+        }
     }
 }

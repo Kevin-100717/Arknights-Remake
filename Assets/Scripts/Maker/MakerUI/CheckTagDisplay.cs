@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.UI;
+using GameData.MapData;
 class CheckTagDisplay : MonoBehaviour
 {
     public List<GameObject> displays;

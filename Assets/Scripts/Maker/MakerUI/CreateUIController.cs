@@ -161,12 +161,21 @@ public class CreateUIController : MonoBehaviour
         routeUIItems.Add(rig);
         routeListContent.sizeDelta = new Vector2(routeListContent.sizeDelta.x, h * routeUIItems.Count);
     }
+    public void LoadRouteItem(RouteEntity re)
+    {
+        float h = 51.449f;
+        GameObject rig = Instantiate(routeBtnPrefab, routeListContent);
+        rig.GetComponent<RouteUI>().routeID = routeUIItems.Count;
+        rig.GetComponent<RouteUI>().routeData = re;
+        routeUIItems.Add(rig);
+        routeListContent.sizeDelta = new Vector2(routeListContent.sizeDelta.x, h * routeUIItems.Count);
+    }
     public void RouteUIClicked(GameObject g)
     {
         foreach (GameObject rui in routeUIItems) { 
             rui.GetComponent<RouteUI>().SwitchColor(rui == g);
         }
-        MakerCore.instance.EnterEditRouteMode(g.GetComponent<RouteUI>().routeID);
+        MakerCore.instance.EnterEditRouteMode(g.GetComponent<RouteUI>().routeID,g.GetComponent<RouteUI>().routeData == null, g.GetComponent<RouteUI>().routeData);
     }
     public void SetRouteDataByRouteUIId(int rid,RouteEntity re)
     {

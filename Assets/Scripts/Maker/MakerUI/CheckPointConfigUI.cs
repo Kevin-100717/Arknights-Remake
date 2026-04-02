@@ -29,4 +29,15 @@ public class CheckPointConfigUI : MonoBehaviour
         }
         return r;
     } 
+    public int getIndexByCkpt(CheckpointEntity ckpt)
+    {
+        foreach(string ckptt in checkPointType)
+        {
+            if(ckptt == ckpt.Type)
+            {
+                return checkPointType.IndexOf(ckptt);
+            }
+        }
+        return 0;
+    }
 }
