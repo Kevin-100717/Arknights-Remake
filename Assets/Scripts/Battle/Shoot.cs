@@ -137,6 +137,7 @@ public class Shoot : MonoBehaviour
         GameObject bp = Instantiate(bulletPrefab, pos, Quaternion.identity);
         bp.GetComponent<BulletController>().dist = detectedCharacters[0].transform.position;
         bp.GetComponent<BulletController>().target = detectedCharacters[0];
+        bp.GetComponent<BulletController>().damage = enemy.enemyData.damage;
 
         // 攻击结束后，恢复到之前的状态
         if (enemy != null && !enemy.isDead)

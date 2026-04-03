@@ -1848,6 +1848,10 @@ MonoBehaviour:
       m_Image: {fileID: 0}
     - m_Text: WAIT
       m_Image: {fileID: 0}
+    - m_Text: Disappear
+      m_Image: {fileID: 0}
+    - m_Text: Appear
+      m_Image: {fileID: 0}
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
@@ -2002,7 +2006,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0.00014199839}
+  m_AnchoredPosition: {x: 0, y: 0.00085385254}
   m_SizeDelta: {x: 0, y: 300}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &533254245
@@ -3271,7 +3275,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 1235687096}
   m_Direction: 2
   m_Value: 0
-  m_Size: 1
+  m_Size: 0.9999962
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -5461,6 +5465,8 @@ MonoBehaviour:
   checkPointType:
   - MOVE
   - WAIT_FOR_SECONDS
+  - DISAPPEAR
+  - APPEAR_AT_POS
   checkPointTypeSelect: {fileID: 527221517}
   waitTimeInput: {fileID: 978455058}
 --- !u!1 &1306714221
@@ -6700,7 +6706,7 @@ Transform:
   m_GameObject: {fileID: 1490831667}
   serializedVersion: 2
   m_LocalRotation: {x: -0.17364825, y: 0, z: 0, w: 0.9848078}
-  m_LocalPosition: {x: 8.29, y: -1.61, z: -11.35}
+  m_LocalPosition: {x: 5.55, y: -0.31, z: -11.35}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -7741,7 +7747,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0.00014456651}
+  m_AnchoredPosition: {x: 0, y: 0.0008548535}
   m_SizeDelta: {x: 0, y: 300}
   m_Pivot: {x: 0, y: 1}
 --- !u!1 &1784902028
@@ -9012,7 +9018,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 1710480832}
   m_Direction: 2
   m_Value: 0
-  m_Size: 1
+  m_Size: 0.9999962
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:

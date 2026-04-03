@@ -178,33 +178,68 @@ public class MakerCore : MonoBehaviour
     }
     void RefreshLineByCkpt()
     {
-        // 按startPosition+checkpoints顺序依次两两相连
+        // DISAPPEAR到APPEAR_AT_POS之间的点不寻路连接，APPEAR_AT_POS后继续正常连接
+        const int DISAPPEAR = 2;
+        const int APPEAR_AT_POS = 3;
+
         List<Vector3> points = new List<Vector3>();
+        List<int> types = new List<int>();
         points.Add(new Vector3(routeEdited.StartPosition.Col, routeEdited.StartPosition.Row, 0));
+        types.Add(0); // 起点type为0
+
         foreach (var ckpt in routeEdited.Checkpoints)
         {
             points.Add(new Vector3(ckpt.Position.Col, ckpt.Position.Row, 0));
+            types.Add(CheckPointConfigUI.instance.getIndexByCkpt(ckpt));
         }
         if (editMode == EditMode.ViewRoute)
         {
             points.Add(new Vector3(routeEdited.EndPosition.Col, routeEdited.EndPosition.Row, 0));
+            types.Add(-1); // EndPosition无type
         }
-        StartCoroutine(DrawRouteLineSequential(points));
+
+        List<(int, int)> connectSegments = new List<(int, int)>();
+        int startIdx = 0;
+        int i = 1;
+        while (i < points.Count)
+        {
+            int t = types[i];
+            if (t == APPEAR_AT_POS)
+            {
+                // APPEAR_AT_POS 视为新的起点，不连接上一段
+                startIdx = i;
+                i++;
+                continue;
+            }
+            if (types[startIdx] == DISAPPEAR)
+            {
+                // 跳过DISAPPEAR段，直到遇到APPEAR_AT_POS
+                i++;
+                continue;
+            }
+            // 连接startIdx到i
+            connectSegments.Add((startIdx, i));
+            startIdx = i;
+            i++;
+        }
+        StartCoroutine(DrawRouteLineSegments(points, connectSegments));
     }
 
-    IEnumerator DrawRouteLineSequential(List<Vector3> points)
+    IEnumerator DrawRouteLineSegments(List<Vector3> points, List<(int, int)> segments)
     {
-        if (points.Count < 2)
+        if (segments.Count == 0)
         {
             ClearRouteLine();
             yield break;
         }
         List<Vector3> fullPath = new List<Vector3>();
-        for (int i = 0; i < points.Count - 1; i++)
+        foreach (var seg in segments)
         {
+            int i = seg.Item1;
+            int j = seg.Item2;
             bool finished = false;
             Pathfinding.Path path = null;
-            routeSeeker.StartPath(points[i], points[i + 1], p => {
+            routeSeeker.StartPath(points[i], points[j], p => {
                 path = p;
                 finished = true;
             });
