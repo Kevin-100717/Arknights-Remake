@@ -34,6 +34,9 @@ public class CreateUIController : MonoBehaviour
     public int width;
     public int height;
     public List<GameObject> routeUIItems;
+    public List<GameObject> enemyDataUIItems;
+    public RectTransform enemyDataListUI;
+    public GameObject enemyDataUIPrefab;
     // Start is called before the first frame update
     void Start()
     {
@@ -74,31 +77,31 @@ public class CreateUIController : MonoBehaviour
         List<EnemiesEntity> resultEnemies = new List<EnemiesEntity>();
         foreach (EnemiesEntity enemy in data.Enemies)
         {
-            if(enemy.Key.Contains(enemyName))
+            if (enemy.Key.Contains(enemyName))
             {
                 Debug.Log("Enemy Found -> " + enemy.Key);
                 resultEnemies.Add(enemy);
             }
         }
-        Debug.Log("Result -> "+ resultEnemies.Count);
+        Debug.Log("Result -> " + resultEnemies.Count);
         foreach (EnemiesEntity enemy in resultEnemies)
         {
             GameObject searchUI = Instantiate(searchUIPrefab, searchContentTransform);
             searchUI.GetComponent<EnemySearchUI>().SetEnemy(enemy.Key, enemy.Value[0].EnemyData);
             searchUI.GetComponent<EnemySearchUI>().isSearchList = true;
         }
-        searchContentTransform.sizeDelta = new Vector2(760,resultEnemies.Count * 178.224f);
+        searchContentTransform.sizeDelta = new Vector2(760, resultEnemies.Count * 178.224f);
 
     }
     public void UpdateSelectedEnemyUI()
     {
         //update ui
         //delete all child and add current
-        foreach(Transform child in selectedEnemyContentTransform)
+        foreach (Transform child in selectedEnemyContentTransform)
         {
             Destroy(child.gameObject);
         }
-        foreach(EnemyDataEntity e in selectedEnemy)
+        foreach (EnemyDataEntity e in selectedEnemy)
         {
             GameObject searchUI = Instantiate(selectedEnemyUIPrefab, selectedEnemyContentTransform);
             searchUI.GetComponent<EnemySearchUI>().SetEnemy(e.PrefabKey.MValue, e);
@@ -109,7 +112,7 @@ public class CreateUIController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
+
     }
     public string ReadData(string path)
     {
@@ -123,7 +126,7 @@ public class CreateUIController : MonoBehaviour
     }
     public void RemoveSelected()
     {
-        foreach(EnemyDataEntity e in selectedRemoved)
+        foreach (EnemyDataEntity e in selectedRemoved)
         {
             if (selectedEnemy.Contains(e))
             {
@@ -172,13 +175,33 @@ public class CreateUIController : MonoBehaviour
     }
     public void RouteUIClicked(GameObject g)
     {
-        foreach (GameObject rui in routeUIItems) { 
+        foreach (GameObject rui in routeUIItems)
+        {
             rui.GetComponent<RouteUI>().SwitchColor(rui == g);
         }
-        MakerCore.instance.EnterEditRouteMode(g.GetComponent<RouteUI>().routeID,g.GetComponent<RouteUI>().routeData == null, g.GetComponent<RouteUI>().routeData);
+        MakerCore.instance.EnterEditRouteMode(g.GetComponent<RouteUI>().routeID, g.GetComponent<RouteUI>().routeData == null, g.GetComponent<RouteUI>().routeData);
     }
-    public void SetRouteDataByRouteUIId(int rid,RouteEntity re)
+    public void SetRouteDataByRouteUIId(int rid, RouteEntity re)
     {
         routeUIItems[rid].GetComponent<RouteUI>().routeData = re;
+    }
+    public void CreateEnemyInfoUI()
+    {
+        float h = 219.2947f;
+        GameObject eig = Instantiate(enemyDataUIPrefab, enemyDataListUI);
+        enemyDataUIItems.Add(eig);
+        enemyDataListUI.sizeDelta = new Vector2(enemyDataListUI.sizeDelta.x, h * enemyDataUIItems.Count);
+    }
+    public void LoadEnemyDataItem(ActionEntity actionEntity)
+    {
+        float h = 219.2947f;
+        GameObject eig = Instantiate(enemyDataUIPrefab, enemyDataListUI);
+        eig.GetComponent<EnemyDataUI>().SetUI(actionEntity);
+        enemyDataUIItems.Add(eig);
+        enemyDataListUI.sizeDelta = new Vector2(enemyDataListUI.sizeDelta.x, h * enemyDataUIItems.Count);
+    }
+    public void ReturnToHome()
+    {
+        SceneJumper.instance.Jump("Scenes/Start");
     }
 }

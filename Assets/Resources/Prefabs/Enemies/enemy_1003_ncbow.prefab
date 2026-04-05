@@ -127,7 +127,7 @@ GameObject:
   - component: {fileID: 5912682898465912913}
   - component: {fileID: -5496936613411277310}
   m_Layer: 0
-  m_Name: enemy_1066_snbow_2
+  m_Name: enemy_1003_ncbow
   m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -177,7 +177,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 192db0cb85b3a2643bb5867077e616e1, type: 2}
+  - {fileID: 2100000, guid: e77a463d5ecc359468a31dff6475ff3b, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -197,7 +197,7 @@ MeshRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 1
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!114 &9222357701444812894
 MonoBehaviour:
@@ -211,7 +211,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d247ba06193faa74d9335f5481b2b56c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  skeletonDataAsset: {fileID: 11400000, guid: 7cf8ccdde94014149b6cbba58d6c4d93, type: 2}
+  skeletonDataAsset: {fileID: 11400000, guid: a7edf70e257319646a147953de56d059, type: 2}
   initialSkinName: 
   initialFlipX: 0
   initialFlipY: 0
@@ -252,13 +252,13 @@ MonoBehaviour:
   enemyType: 0
   animations:
   - state: 1
-    animationName: Attack
+    animationName: Combat
     loop: 1
   - state: 3
     animationName: Idle
     loop: 1
   - state: 0
-    animationName: Move
+    animationName: Move_Loop
     loop: 1
   - state: 5
     animationName: Idle
@@ -274,17 +274,17 @@ MonoBehaviour:
     loop: 1
   spineAnimation: {fileID: 9222357701444812894}
   enemyData:
-    hp_total: 3500
+    hp_total: 1400
     hp_current: 0
     damage:
-      damage: 360
+      damage: 240
       type: 0
     atk_interval: 2.4
     def: 100
     magic_def: 0
     speed: 0.9
     dieAddToCount: 1
-    haveNear: 0
+    haveNear: 1
     type: 0
   hpUIController:
     hpBar: {fileID: 3238620992675061167}
@@ -447,7 +447,7 @@ MonoBehaviour:
   atk_range: 1.9
   atk_interval: 2.4
   bulletPrefab: {fileID: 2632673872651628691, guid: f57b3547a20082349b84286729d65b8d, type: 3}
-  bone: C_Muzzle
+  bone: Muzzle
 --- !u!1 &3599960417103944927
 GameObject:
   m_ObjectHideFlags: 0

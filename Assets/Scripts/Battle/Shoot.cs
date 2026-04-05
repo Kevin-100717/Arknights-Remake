@@ -33,12 +33,17 @@ public class Shoot : MonoBehaviour
         InvokeRepeating("DetectCharactersInRange", 0.1f, 0.5f);
     }
 
+    private void OnEnable()
+    {
+        // 组件启用时重置状态
+        isAttacking = false;
+        attackTimer = 0f;
+    }
+
     private void Update()
     {
-        // 只有当敌人处于可以攻击的状态时才考虑远程攻击
-        // 并且敌人不是近战类型或者没有近战能力
-        if (enemy == null || enemy.isDead || enemy.state == EnemyState.Die ||
-            (enemy.enemyData.haveNear && enemy.enemyType == EnemyData.EnemyType.Normal))
+        // 基本的生存检查
+        if (enemy == null || enemy.isDead || enemy.state == EnemyState.Die)
         {
             return;
         }
@@ -58,7 +63,7 @@ public class Shoot : MonoBehaviour
     /// </summary>
     private void DetectCharactersInRange()
     {
-        if (enemy == null || enemy.isDead) return;
+        if (!isActiveAndEnabled || enemy == null || enemy.isDead) return;
 
         detectedCharacters.Clear();
 
@@ -72,10 +77,40 @@ public class Shoot : MonoBehaviour
                 float distance = Vector3.Distance(transform.position, character.transform.position);
                 if (distance <= atk_range)
                 {
-                    detectedCharacters.Add(character);
+                    // 检查角色是否已经被足够多的敌人阻挡
+                    if (CanAttackCharacter(character))
+                    {
+                        detectedCharacters.Add(character);
+                    }
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// 检查是否可以攻击指定角色（基于def_num限制）
+    /// </summary>
+    private bool CanAttackCharacter(Character character)
+    {
+        // 计算当前有多少敌人正在阻挡这个角色
+        int blockingEnemies = 0;
+
+        // 查找所有敌人
+        Enemy[] allEnemies = FindObjectsOfType<Enemy>();
+        foreach (Enemy e in allEnemies)
+        {
+            if (e != null && !e.isDead &&
+                (e.state == EnemyState.Attack ||
+                 e.state == EnemyState.Attack_interval ||
+                 e.state == EnemyState.EmptyIdle) &&
+                e.atk_target == character)
+            {
+                blockingEnemies++;
+            }
+        }
+
+        // 如果阻挡数量小于角色的最大阻挡数，则可以攻击
+        return blockingEnemies < character.charData.def_num;
     }
 
     /// <summary>
@@ -84,7 +119,7 @@ public class Shoot : MonoBehaviour
     private void TryAcquireAndAttackTarget()
     {
         // 如果正在攻击动画中，不进行新的攻击
-        if (isAttacking) return;
+        if (!isActiveAndEnabled || isAttacking) return;
 
         if (attackTimer <= 0 && detectedCharacters.Count > 0)
         {
@@ -97,9 +132,13 @@ public class Shoot : MonoBehaviour
                     float distance = Vector3.Distance(transform.position, character.transform.position);
                     if (distance <= atk_range)
                     {
-                        // 成功找到可攻击的目标
-                        PerformAttack(character);
-                        return; // 每次Update只攻击一次
+                        // 再次检查是否还能攻击这个角色
+                        if (CanAttackCharacter(character))
+                        {
+                            // 成功找到可攻击的目标
+                            PerformAttack(character);
+                            return; // 每次Update只攻击一次
+                        }
                     }
                 }
             }
@@ -130,14 +169,24 @@ public class Shoot : MonoBehaviour
     /// </summary>
     public void OnAttack()
     {
+        // 只有在组件启用时才执行攻击逻辑
+        if (!isActiveAndEnabled) return;
+
         // 实际伤害计算等逻辑在这里实现或由其他系统处理
         Debug.Log($"Enemy [{gameObject.name}] performed a ranged attack!");
-        Bone b = enemy.spineAnimation.Skeleton.FindBone(bone);
-        Vector3 pos = b.GetWorldPosition(enemy.spineAnimation.transform);
-        GameObject bp = Instantiate(bulletPrefab, pos, Quaternion.identity);
-        bp.GetComponent<BulletController>().dist = detectedCharacters[0].transform.position;
-        bp.GetComponent<BulletController>().target = detectedCharacters[0];
-        bp.GetComponent<BulletController>().damage = enemy.enemyData.damage;
+
+        if (bulletPrefab != null && !string.IsNullOrEmpty(bone) && detectedCharacters.Count > 0)
+        {
+            Bone b = enemy.spineAnimation.Skeleton.FindBone(bone);
+            if (b != null)
+            {
+                Vector3 pos = b.GetWorldPosition(enemy.spineAnimation.transform);
+                GameObject bp = Instantiate(bulletPrefab, pos, Quaternion.identity);
+                bp.GetComponent<BulletController>().dist = detectedCharacters[0].transform.position;
+                bp.GetComponent<BulletController>().target = detectedCharacters[0];
+                bp.GetComponent<BulletController>().damage = enemy.enemyData.damage;
+            }
+        }
 
         // 攻击结束后，恢复到之前的状态
         if (enemy != null && !enemy.isDead)
@@ -150,7 +199,10 @@ public class Shoot : MonoBehaviour
     // 在Scene视图中可视化攻击范围（仅在编辑器中显示）
     private void OnDrawGizmosSelected()
     {
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, atk_range);
+        if (isActiveAndEnabled)
+        {
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireSphere(transform.position, atk_range);
+        }
     }
 }

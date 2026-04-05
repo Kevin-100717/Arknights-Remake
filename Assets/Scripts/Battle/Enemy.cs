@@ -37,6 +37,8 @@ public class Enemy : MonoBehaviour
     public bool isDead = false;
     private Dictionary<EnemyState, SpineAnimationData> animationMap;
     private EnemyState stateBeforeAttack = EnemyState.Idle; // 记录攻击前的状态
+    private Shoot shootComponent; // 对Shoot组件的引用
+    private bool wasInMeleeState = false; // 记录上一帧是否处于近战状态
 
     void Awake()
     {
@@ -47,6 +49,9 @@ public class Enemy : MonoBehaviour
     {
         ValidateAndInitialize();
         BindSpineAnimationEvents();
+
+        // 获取Shoot组件引用
+        shootComponent = GetComponent<Shoot>();
     }
 
     void InitializeAnimationMap()
@@ -104,12 +109,19 @@ public class Enemy : MonoBehaviour
     {
         if (trackEntry.Animation.Name == GetAnimationName(EnemyState.Die))
         {
+            // 在死亡动画开始时也释放阻挡位
             if (atk_target != null)
             {
-                atk_target.charData.current_def_num = Mathf.Max(0, atk_target.charData.current_def_num - 1);
+                if (atk_target.charData.current_def_num > 0)
+                {
+                    atk_target.charData.current_def_num--;
+                }
             }
+            // 清空目标引用
+            atk_target = null;
         }
     }
+
 
     void OnSpineAnimationComplete(Spine.TrackEntry trackEntry)
     {
@@ -176,11 +188,26 @@ public class Enemy : MonoBehaviour
         enemyData.hp_current = 0;
         state = EnemyState.Die;
 
+        // 释放阻挡位 - 这是关键修复！
+        if (atk_target != null)
+        {
+            if (atk_target.charData.current_def_num > 0)
+            {
+                atk_target.charData.current_def_num--;
+            }
+        }
+
         // 重置所有与攻击相关的状态和引用
         atk_target = null;
         onAttack = false;
         stateBeforeAttack = EnemyState.Idle;
         stateBeforeShoot = EnemyState.Idle; // 也重置射击前状态
+
+        // 启用Shoot组件，以防死亡时被禁用
+        if (shootComponent != null)
+        {
+            shootComponent.enabled = true;
+        }
 
         if (hpUIController != null)
             hpUIController.hpBar.gameObject.SetActive(false);
@@ -245,7 +272,6 @@ public class Enemy : MonoBehaviour
         }
     }
 
-
     void ProcessCheckpoint()
     {
         CheckpointEntity checkpoint = route.Checkpoints[currentPathIndex];
@@ -275,6 +301,15 @@ public class Enemy : MonoBehaviour
                 state = EnemyState.Idle;
                 pathWaitTime = checkpoint.Time; // 使用专用计时器
                 break;
+            case "DISAPPEAR":
+                GetComponent<MeshRenderer>().enabled = false;
+                UpdateCheckPoint();
+                break;
+            case "APPEAR_AT_POS":
+                GetComponent<MeshRenderer>().enabled = true;
+                transform.position = GetPosition(currentPathIndex);
+                UpdateCheckPoint();
+                break;
         }
     }
 
@@ -302,8 +337,41 @@ public class Enemy : MonoBehaviour
     {
         if (isDead) return;
 
+        // 控制Shoot组件的启用/禁用
+        ControlShootComponent();
+
         UpdateAnimation();
         ProcessState();
+    }
+
+    /// <summary>
+    /// 控制Shoot组件的启用/禁用
+    /// </summary>
+    void ControlShootComponent()
+    {
+        bool isInMeleeState = (enemyData.haveNear &&
+                              (state == EnemyState.Attack ||
+                               state == EnemyState.Attack_interval ||
+                               state == EnemyState.EmptyIdle));
+
+        // 只有在状态真正改变时才操作组件
+        if (isInMeleeState != wasInMeleeState)
+        {
+            if (shootComponent != null)
+            {
+                if (isInMeleeState)
+                {
+                    // 进入近战状态，禁用远程攻击
+                    shootComponent.enabled = false;
+                }
+                else
+                {
+                    // 退出近战状态，启用远程攻击
+                    shootComponent.enabled = true;
+                }
+            }
+            wasInMeleeState = isInMeleeState;
+        }
     }
 
     void ProcessState()
@@ -381,7 +449,7 @@ public class Enemy : MonoBehaviour
     {
         // 在此状态下，敌人什么都不做，只是站着不动。
         // 可以在这里添加一些 idle 的行为，比如播放 idle 动画。
-        // 当前逻辑是空的，因为状态本身就意味着“等待”。
+        // 当前逻辑是空的，因为状态本身就意味着"等待"。
     }
 
     // 新增: Shoot 状态下的处理逻辑 (主要是动画播放)
@@ -390,7 +458,6 @@ public class Enemy : MonoBehaviour
         // 动画播放由 Spine 控制，这里可以留空或做一些辅助逻辑
         // 例如检查是否仍在范围内等，但这主要由 Shoot.cs 脚本管理
     }
-
 
     void ProcessAttackInterval()
     {
@@ -453,30 +520,54 @@ public class Enemy : MonoBehaviour
         {
             Character character = other.gameObject.GetComponent<Character>();
             if (character != null &&
-                character.charData.current_def_num < character.charData.def_num &&
                 character.state != CharacterState.Die)
             {
                 // 新增逻辑: 检查敌人是否有近战能力
                 if (!enemyData.haveNear)
                 {
                     // 没有近战能力，被阻挡时进入 EmptyIdle 状态
-                    stateBeforeAttack = state;
-                    character.charData.current_def_num++; // 占用阻挡位
-                    atk_target = character; // 保留引用以便在退出时释放
-                    state = EnemyState.EmptyIdle; // 切换到空闲状态
-                    onAttack = false; // 不进行攻击
-                    return; // 结束，不执行下面的攻击逻辑
+                    // 检查是否还能被阻挡（def_num限制）
+                    if (character.charData.current_def_num < character.charData.def_num)
+                    {
+                        stateBeforeAttack = GetLastState();
+                        character.charData.current_def_num++; // 占用阻挡位
+                        atk_target = character; // 保留引用以便在退出时释放
+                        state = EnemyState.EmptyIdle; // 切换到空闲状态
+                        onAttack = false; // 不进行攻击
+                        return; // 结束，不执行下面的攻击逻辑
+                    }
+                    else
+                    {
+                        // 无法被阻挡，继续移动
+                        return;
+                    }
                 }
 
-                // 有近战能力，执行原有攻击逻辑
-                // 记录攻击前的状态
-                stateBeforeAttack = state;
-                character.charData.current_def_num++;
-                atk_target = character;
-                state = EnemyState.Attack;
-                onAttack = true;
-                attackIntervalTimer = 0; // 重置攻击间隔计时器
+                // 有近战能力，检查是否还能被阻挡
+                if (character.charData.current_def_num < character.charData.def_num)
+                {
+                    // 有近战能力，执行原有攻击逻辑
+                    // 记录攻击前的状态
+                    stateBeforeAttack = GetLastState();
+                    character.charData.current_def_num++;
+                    atk_target = character;
+                    state = EnemyState.Attack;
+                    onAttack = true;
+                    attackIntervalTimer = 0; // 重置攻击间隔计时器
+                }
             }
+        }
+    }
+
+    EnemyState GetLastState()
+    {
+        if (state != EnemyState.EmptyIdle)
+        {
+            return state;
+        }
+        else
+        {
+            return stateBeforeAttack;
         }
     }
 

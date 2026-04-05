@@ -36,6 +36,8 @@ public class MakerCore : MonoBehaviour
     void Start()
     {
         instance = this;
+        mapLoader.mapDataJsonFilePath = "/exports/craft.json";
+        mapLoader.enabled = true;
     }
     public void CreateNode(int width,int height)
     {
@@ -64,14 +66,17 @@ public class MakerCore : MonoBehaviour
         {
             CreateUIController.instance.LoadRouteItem(ret);
         }
+        foreach(ActionEntity actionEntity in battleData.Waves[0].Fragments[0].Actions)
+        {
+            CreateUIController.instance.LoadEnemyDataItem(actionEntity);
+        }
         CreateNode(width, height);
         for(int i=0;i<nodeObj.Count;i++)
         {
             nodeObj[i].GetComponent<MapNode>().setNodeByTileData(battleData.MapData.Tiles[i]);
         }
         SaveFile("/exports/craft.json", false);
-        mapLoader.mapDataJsonFilePath = "/exports/craft.json";
-        mapLoader.enabled = true;
+        mapLoader.Load();
     }
     // Update is called once per frame
     void Update()

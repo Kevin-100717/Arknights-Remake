@@ -30,6 +30,7 @@ public class MapLoader : MonoBehaviour
         LoadMap();
         if (EnemySpawner.Instance)
         {
+            Debug.Log(battleData.Waves.Count);
             EnemySpawner.Instance.LoadEnemyData(battleData);
         }
     }

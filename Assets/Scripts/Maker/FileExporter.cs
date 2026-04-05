@@ -45,6 +45,7 @@ public class FileExporter : MonoBehaviour
         }
         SaveMapInfo();
         SaveRouteInfo();
+        SaveEnemyInfo();
         System.IO.File.WriteAllText(sp, JsonConvert.SerializeObject(battleData,Formatting.Indented));
         if (flag) { MessageBox(IntPtr.Zero, "File saved to " + sp, "Save Success", 0); } else
         {
@@ -81,6 +82,32 @@ public class FileExporter : MonoBehaviour
         {
             battleData.Routes.Add(routeUI.GetComponent<RouteUI>().routeData);
         }
+    }
+    void SaveEnemyInfo()
+    {
+        battleData.Waves = new List<WaveEntity>{
+            new WaveEntity{
+                PreDelay = 0,
+                PostDelay = 0,
+                MaxTimeWaitingForNextWave = -1,
+                Fragments = new List<FragmentEntity>
+                {
+                    new FragmentEntity{
+                        PreDelay = 0,
+                        Actions = new List<ActionEntity>{
+                        }
+                    }
+                },
+                AdvancedWaveTag = null
+            }
+        };
+        foreach(GameObject eui in CreateUIController.instance.enemyDataUIItems)
+        {
+            EnemyDataUI edui = eui.GetComponent<EnemyDataUI>();
+            if (edui != null) {
+                battleData.Waves[0].Fragments[0].Actions.Add(edui.GetEnemyData());
+            }
+         }
     }
     // Update is called once per frame
     void Update()
