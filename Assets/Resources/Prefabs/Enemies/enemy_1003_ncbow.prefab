@@ -446,7 +446,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   atk_range: 1.9
   atk_interval: 2.4
-  bulletPrefab: {fileID: 2632673872651628691, guid: f57b3547a20082349b84286729d65b8d, type: 3}
+  bulletPrefab: {fileID: 2632673872651628691, guid: e946957372134d0438bd4a1bd06fde17, type: 3}
   bone: Muzzle
 --- !u!1 &3599960417103944927
 GameObject:

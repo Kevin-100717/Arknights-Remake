@@ -10,6 +10,7 @@ public class BulletController : MonoBehaviour
     public Damage damage;
     public Character target;
     public float speed;
+    public bool useMove;
     void Start()
     {
         dist = new Vector3(dist.x,dist.y,transform.position.z);
@@ -22,9 +23,12 @@ public class BulletController : MonoBehaviour
         {
             Destroy(gameObject);
         }
-        Vector3 dir = (dist - transform.position).normalized;
-        Vector3 velocity = dir * speed;
-        transform.position += velocity * Time.deltaTime;
+        if (useMove)
+        {
+            Vector3 dir = (dist - transform.position).normalized;
+            Vector3 velocity = dir * speed;
+            transform.position += velocity * Time.deltaTime;
+        }
         if(Vector3.Distance(dist,transform.position) < 0.2f)
         {
             target.TakeDamage(damage);

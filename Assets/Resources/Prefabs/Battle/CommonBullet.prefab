@@ -127,7 +127,7 @@ TrailRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Time: 0.08
+  m_Time: 0.3
   m_PreviewTimeScale: 1
   m_Parameters:
     serializedVersion: 3
@@ -216,3 +216,4 @@ MonoBehaviour:
     type: 0
   target: {fileID: 0}
   speed: 20
+  useMove: 1
