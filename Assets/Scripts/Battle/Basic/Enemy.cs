@@ -298,6 +298,7 @@ public class Enemy : MonoBehaviour
                 break;
 
             case "WAIT_FOR_SECONDS":
+            case "WAIT_CURRENT_WAVE_TIME":
                 state = EnemyState.Idle;
                 pathWaitTime = checkpoint.Time; // 使用专用计时器
                 break;

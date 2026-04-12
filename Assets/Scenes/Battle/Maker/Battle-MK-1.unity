@@ -25791,7 +25791,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0654a622db61234a971c3376ee0cbc9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mapDataJsonFilePath: /exports/temp.json
+  mapDataJsonFilePath: /levels/MK-1.json
   walkableNodePrefab: {fileID: 9143102993131302915, guid: 79dc3e4d3a5497748ab81a63f33b407e, type: 3}
   wallNodePrefab: {fileID: 5604965787100596031, guid: 6a32a703a429f084faf0c271ad79df0d, type: 3}
   astarPath: {fileID: 1659848821}

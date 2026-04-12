@@ -11,6 +11,7 @@ public class EnemySpawner : MonoBehaviour
 
     private BattleData battleData;
     private int actionFin = 0;
+    private bool flag = false;
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -26,7 +27,6 @@ public class EnemySpawner : MonoBehaviour
     public void LoadEnemyData(BattleData bd)
     {
         battleData = bd;
-        GameController.instance.allEnemyCount = GetEnemyCount();
         StartCoroutine(SpawnEnemies());
     }
     private int GetEnemyCount()
@@ -102,11 +102,20 @@ public class EnemySpawner : MonoBehaviour
                     Vector3 startPoint = new Vector3(routeData.StartPosition.Col,routeData.StartPosition.Row,0);
                     GameObject enemy = Instantiate(enemy_prefab,startPoint,Quaternion.identity);
                     Enemy enemyObj = enemy.GetComponent<Enemy>();
+                    enemyObj.transform.localEulerAngles = new Vector3(-30, 0, 0);
                     enemyObj.route = routeData;
                     yield return new WaitForSeconds(interval);
                 }
                 break;
         }
         actionFin++;
+    }
+    private void Update()
+    {
+        if (!flag)
+        {
+            flag = true;
+            GameController.instance.allEnemyCount = GetEnemyCount();
+        }
     }
 }
