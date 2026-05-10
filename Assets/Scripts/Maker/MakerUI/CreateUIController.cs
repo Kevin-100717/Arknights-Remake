@@ -6,6 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -24,6 +25,7 @@ public class CreateUIController : MonoBehaviour
     public List<EnemyDataEntity> selectedRemoved = new List<EnemyDataEntity>();
     public InputField widthInput;
     public InputField heightInput;
+    public InputField savePathInput;
     public GameObject panel;
     public GameObject panel1;
     public List<GameObject> routeBtn;
@@ -42,6 +44,16 @@ public class CreateUIController : MonoBehaviour
     {
         instance = this;
         StartCoroutine(startui());
+    }
+    public void OpenFileAction()
+    {
+        string path = EditorUtility.OpenFilePanel("打开的文件", "", "json");
+        if (!string.IsNullOrEmpty(path)) {
+            savePathInput.text = path;
+            MakerCore.instance.LoadMap(path,false);
+            panel.SetActive(false);
+            panel1.SetActive(true);
+        }
     }
     IEnumerator startui()
     {

@@ -9,7 +9,7 @@ public class EnemySpawner : MonoBehaviour
     [Header("Debug")]
     [SerializeField] private bool enableLog = false;
 
-    private BattleData battleData;
+    public BattleData battleData;
     private int actionFin = 0;
     private bool flag = false;
     private void Awake()
@@ -59,7 +59,14 @@ public class EnemySpawner : MonoBehaviour
                 actionFin = 0;
                 foreach (var action in fragment.Actions)
                 {
-                    StartCoroutine(HandleAction(action));
+                    if (action.Key == "enemy_10072_mpprhd" && MpprHand.instance != null)
+                    {
+                        MpprHand.instance.nextEnemyTask = true;
+                    }
+                    else
+                    {
+                        StartCoroutine(HandleAction(action));
+                    }
                 }
                 while (actionFin < fragment.Actions.Count)
                 {
@@ -73,12 +80,28 @@ public class EnemySpawner : MonoBehaviour
     }
     private IEnumerator HandleAction(GameData.MapData.ActionEntity action)
     {
-        yield return new WaitForSeconds(action.PreDelay);
-        StartCoroutine(SpawnEnemyAction(action.ActionType,
-            (int)action.Count,
-            action.Key,
-            (int)action.RouteIndex,
-            action.Interval));
+        if (MpprHand.instance != null && MpprHand.instance.nextEnemyTask == true)
+        {
+            yield return new WaitForSeconds(action.PreDelay);
+            //add enemy task to mppr hand
+            Debug.Log($"[EnemySpawner] Add enemy task '{action.Key}' to MpprHand");
+            MpprHand.instance.nextEnemyTask = false;
+            MpprHand.instance.taskList.Add(new MpprHand.Task
+            {
+                taskType = MpprHand.Task.TaskType.Place,
+                actionEntity = action,
+                dist = Vector3.zero
+            });
+        }
+        else
+        {
+            yield return new WaitForSeconds(action.PreDelay);
+            StartCoroutine(SpawnEnemyAction(action.ActionType,
+                (int)action.Count,
+                action.Key,
+                (int)action.RouteIndex,
+                action.Interval));
+        }
     }
     private IEnumerator SpawnEnemyAction(string at, int count, string enemyKey, int routeIndex, float interval)
     {

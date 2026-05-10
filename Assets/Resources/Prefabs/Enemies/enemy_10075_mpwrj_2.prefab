@@ -283,6 +283,7 @@ MonoBehaviour:
     white: {fileID: 4194253665435982464}
   state: 0
   atk_target: {fileID: 0}
+  isReWrite: 0
   stateBeforeShoot: 3
   isDead: 0
 --- !u!54 &-299252190851487642
@@ -348,7 +349,7 @@ MonoBehaviour:
   target: {x: 0, y: 0, z: 0}
   speed: 2
   reachedEndOfPath: 0
-  nextWaypointDistance: 0.02
+  nextWaypointDistance: 0.05
 --- !u!1 &3599960417103944927
 GameObject:
   m_ObjectHideFlags: 0

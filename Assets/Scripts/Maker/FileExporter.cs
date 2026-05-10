@@ -35,7 +35,7 @@ public class FileExporter : MonoBehaviour
     public void Save(string path,bool flag)
     {
         string sp;
-        if(path == "")
+        if (path == "")
         {
             sp = Application.streamingAssetsPath + "/exports/temp.json";
         }

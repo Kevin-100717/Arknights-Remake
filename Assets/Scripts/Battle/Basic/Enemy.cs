@@ -24,6 +24,7 @@ public class Enemy : MonoBehaviour
     [Header("Runtime State")]
     public EnemyState state;
     public Character atk_target;
+    public bool isReWrite = false; // 是否重写Update方法，重写后将不执行默认逻辑
 
     // 新增：用于记录进入Shoot状态前的状态
     public EnemyState stateBeforeShoot = EnemyState.Idle;
@@ -47,6 +48,7 @@ public class Enemy : MonoBehaviour
 
     void Start()
     {
+        if(isReWrite) return; // 如果重写了Update方法，跳过默认初始化逻辑
         ValidateAndInitialize();
         BindSpineAnimationEvents();
 
@@ -337,7 +339,8 @@ public class Enemy : MonoBehaviour
     void Update()
     {
         if (isDead) return;
-
+        UpdateAnimation();
+        if (isReWrite) return;
         // 控制Shoot组件的启用/禁用
         ControlShootComponent();
 

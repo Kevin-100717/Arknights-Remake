@@ -54,10 +54,10 @@ public class MakerCore : MonoBehaviour
         }
         enterEditMode = true;
     }
-    public void LoadMap()
+    public void LoadMap(string path = "", bool isNew=true)
     {
-        save_path = Application.streamingAssetsPath + "/exports/temp.json";
-        BattleData battleData = JsonConvert.DeserializeObject<BattleData>(ReadData("/exports/temp.json"));
+        save_path = isNew ? (Application.streamingAssetsPath + "/exports/temp.json") : path;
+        BattleData battleData = JsonConvert.DeserializeObject<BattleData>(ReadData(save_path));
         int width = battleData.MapData.Map[0].Count;
         int height = battleData.MapData.Map.Count;
         CreateUIController.instance.width = width;
@@ -320,17 +320,18 @@ public class MakerCore : MonoBehaviour
             }
         }
     }
-    public void SaveFile(string sp,bool flag)
+    public void SaveFile(string sp,bool flag,bool tr=false)
     {
-        FileExporter.instance.Save(sp == ""?save_path: Application.streamingAssetsPath + sp,flag);
+        string p = sp == "" ? save_path : (tr?sp:Application.streamingAssetsPath + sp);
+        FileExporter.instance.Save(p,flag);
     }
     public void SaveExport()
     {
-        SaveFile("", true);
+        SaveFile(CreateUIController.instance.savePathInput.text, true,true);
     }
     public string ReadData(string path)
     {
-        string fileUrl = Application.streamingAssetsPath + path;
+        string fileUrl = path;
         using (StreamReader sr = new StreamReader(fileUrl))
         {
             string readData = sr.ReadToEnd();
