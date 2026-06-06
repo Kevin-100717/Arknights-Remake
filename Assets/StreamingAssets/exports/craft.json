@@ -2096,7 +2096,56 @@
   "runes": null,
   "optionalRunes": null,
   "globalBuffs": null,
-  "routes": [],
+  "routes": [
+    {
+      "motionMode": "WALK",
+      "startPosition": {
+        "row": 6.0,
+        "col": 15.0
+      },
+      "endPosition": {
+        "row": 6.0,
+        "col": 1.0
+      },
+      "spawnRandomRange": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "spawnOffset": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "checkpoints": [],
+      "allowDiagonalMove": true,
+      "visitEveryTileCenter": false,
+      "visitEveryNodeCenter": false,
+      "visitEveryCheckPoint": false
+    },
+    {
+      "motionMode": "WALK",
+      "startPosition": {
+        "row": 5.0,
+        "col": 15.0
+      },
+      "endPosition": {
+        "row": 6.0,
+        "col": 1.0
+      },
+      "spawnRandomRange": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "spawnOffset": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "checkpoints": [],
+      "allowDiagonalMove": true,
+      "visitEveryTileCenter": false,
+      "visitEveryNodeCenter": false,
+      "visitEveryCheckPoint": false
+    }
+  ],
   "extraRoutes": null,
   "enemies": null,
   "enemyDbRefs": null,

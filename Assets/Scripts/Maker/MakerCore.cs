@@ -121,6 +121,15 @@ public class MakerCore : MonoBehaviour
                     editMode = EditMode.Normal;
                     ClearRouteLine();
                 }
+                if (Input.GetKeyDown(KeyCode.F))
+                {
+                    if (routeEdited != null)
+                    {
+                        // Toggle between WALK and FLY for convenience; set to FLY if not already
+                        routeEdited.MotionMode = routeEdited.MotionMode == "FLY" ? "WALK" : "FLY";
+                        RefreshLineByCkpt();
+                    }
+                }
                 if (Input.GetMouseButtonDown(0))
                 {
                     MapNode n = getTouchNode();
@@ -154,6 +163,15 @@ public class MakerCore : MonoBehaviour
                     }
                     ClearRouteLine();
                     editMode = EditMode.Normal;
+                }
+                if (Input.GetKeyDown(KeyCode.F))
+                {
+                    if (routeEdited != null)
+                    {
+                        // Toggle between WALK and FLY for preview
+                        routeEdited.MotionMode = routeEdited.MotionMode == "FLY" ? "WALK" : "FLY";
+                        RefreshLineByCkpt();
+                    }
                 }
                 if (Input.GetKeyDown(KeyCode.E))
                 {
@@ -202,6 +220,25 @@ public class MakerCore : MonoBehaviour
             points.Add(new Vector3(routeEdited.EndPosition.Col, routeEdited.EndPosition.Row, 0));
             types.Add(-1); // EndPosition无type
         }
+
+        // If MotionMode is FLY, simply connect checkpoints sequentially and use yellow color.
+        if (routeEdited != null && routeEdited.MotionMode == "FLY")
+        {
+            if (points.Count == 0)
+            {
+                ClearRouteLine();
+                return;
+            }
+            routeLineRenderer.startColor = Color.yellow;
+            routeLineRenderer.endColor = Color.yellow;
+            routeLineRenderer.positionCount = points.Count;
+            routeLineRenderer.SetPositions(points.ToArray());
+            return;
+        }
+
+        // Default (WALK) color
+        routeLineRenderer.startColor = Color.red;
+        routeLineRenderer.endColor = Color.red;
 
         List<(int, int)> connectSegments = new List<(int, int)>();
         int startIdx = 0;

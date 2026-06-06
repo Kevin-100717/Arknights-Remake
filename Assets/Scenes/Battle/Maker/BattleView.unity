@@ -131,6 +131,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 112409962}
+  - component: {fileID: 112409963}
   m_Layer: 0
   m_Name: MapCreator
   m_TagString: Untagged
@@ -147,12 +148,26 @@ Transform:
   m_GameObject: {fileID: 112409961}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 15.577143, y: 1.6518185, z: -12.294286}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &112409963
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 112409961}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec2e303689057be4b9938950ca097bdc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  map_data: 
+  nodePrefab: {fileID: 7628237660947928905, guid: 8ce6793136059a44c8d6ff7809f58457, type: 3}
 --- !u!1 &228227279
 GameObject:
   m_ObjectHideFlags: 0
@@ -524,14 +539,14 @@ Light:
   serializedVersion: 10
   m_Type: 1
   m_Shape: 0
-  m_Color: {r: 1, g: 0.95686275, b: 0.8392157, a: 1}
-  m_Intensity: 1
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Intensity: 1.4
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize: 10
   m_Shadows:
-    m_Type: 2
+    m_Type: 0
     m_Resolution: -1
     m_CustomResolution: -1
     m_Strength: 1
@@ -1185,6 +1200,7 @@ GameObject:
   - component: {fileID: 1307855492}
   - component: {fileID: 1307855491}
   - component: {fileID: 1307855490}
+  - component: {fileID: 1307855493}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -1266,6 +1282,24 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: -30, y: 0, z: 0}
+--- !u!114 &1307855493
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1307855489}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbfec871de13727448027cbee75b3415, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  moveSpeed: 5
+  heightLimitMin: -10
+  heightLimitMax: 30
+  depthLimitMin: -20
+  depthLimitMax: 20
+  scrollSensitivity: 2
 --- !u!1 &1614113956
 GameObject:
   m_ObjectHideFlags: 0
@@ -1283,7 +1317,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1614113957
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1296,7 +1330,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0654a622db61234a971c3376ee0cbc9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mapDataJsonFilePath: 
+  mapDataJsonFilePath: /test/view.json
   walkableNodePrefab: {fileID: 9143102993131302915, guid: 79dc3e4d3a5497748ab81a63f33b407e, type: 3}
   wallNodePrefab: {fileID: 5604965787100596031, guid: 6a32a703a429f084faf0c271ad79df0d, type: 3}
   astarPath: {fileID: 1614113958}
@@ -1420,7 +1454,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1678979846
 MonoBehaviour:
   m_ObjectHideFlags: 0
