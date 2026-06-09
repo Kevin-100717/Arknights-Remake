@@ -123,6 +123,8 @@ GameObject:
   - component: {fileID: -299252190851487642}
   - component: {fileID: 5041249656139346021}
   - component: {fileID: 1537107094564432466}
+  - component: {fileID: 8401500597126950300}
+  - component: {fileID: 1815801382757096395}
   m_Layer: 0
   m_Name: enemy_1041_lazerd
   m_TagString: Enemy
@@ -260,6 +262,12 @@ MonoBehaviour:
   - state: 4
     animationName: Die
     loop: 0
+  - state: 2
+    animationName: Attack
+    loop: 0
+  - state: 6
+    animationName: Idle
+    loop: 1
   spineAnimation: {fileID: 9222357701444812894}
   enemyData:
     hp_total: 2700
@@ -347,6 +355,51 @@ MonoBehaviour:
   speed: 2
   reachedEndOfPath: 0
   nextWaypointDistance: 0.05
+--- !u!114 &8401500597126950300
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3418006406629076701}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 75099535961e0f140be8065c7712e222, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  atk_range: 1.8
+  atk_interval: 2.15
+  bulletPrefab: {fileID: 2632673872651628691, guid: 30b7a673736e0a543b554e6c1959b9be, type: 3}
+  bone: Muzzle
+--- !u!114 &1815801382757096395
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3418006406629076701}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 90293750f472d3340b452cec6fea2606, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  events:
+  - spineEvent: OnAttack
+    unityHandler:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 8401500597126950300}
+          m_TargetAssemblyTypeName: Shoot, Assembly-CSharp
+          m_MethodName: OnAttack
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
 --- !u!1 &3599960417103944927
 GameObject:
   m_ObjectHideFlags: 0

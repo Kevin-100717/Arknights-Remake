@@ -14,6 +14,9 @@ public class MapLoader : MonoBehaviour
     public GameObject wallNodePrefab;
     public AstarPath astarPath;
     public Transform root;
+    public Transform buildRoot;
+    public GameObject ground_buildable_prefab;
+    public GameObject highland_buildable_prefab;
     // Start is called before the first frame update
     void Start()
     {
@@ -50,7 +53,7 @@ public class MapLoader : MonoBehaviour
             foreach(int cell in row)
             {
                 TileEntity tile = tiles[cell];
-                GameObject t;
+                GameObject t,t2;
                 if(tile.PassableMask == "ALL")
                 {
                     t = Instantiate(walkableNodePrefab, new Vector3(x, y,0), Quaternion.identity);
@@ -60,12 +63,25 @@ public class MapLoader : MonoBehaviour
                     //Debug.Log("createWall");
                     t = Instantiate(wallNodePrefab, new Vector3(x, y, 0), Quaternion.identity);
                 }
+                if (tile.BuildableType == "MELEE" || tile.BuildableType == "ALL")
+                {
+                    //ground
+                    t2 = Instantiate(ground_buildable_prefab, new Vector3(x, y, 0), Quaternion.identity);
+                    t2.transform.SetParent(buildRoot);
+                }
+                else if (tile.BuildableType == "RANGED")
+                {
+                    //ground
+                    t2 = Instantiate(highland_buildable_prefab, new Vector3(x, y, 0), Quaternion.identity);
+                    t2.transform.SetParent(buildRoot);
+                }
                 t.transform.SetParent(root);
                 x++;
             }
             x = 0;
             y--;
         }
+        buildUIController.instance.LoadUI();
         StartCoroutine(waitScan());
         
     }

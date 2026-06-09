@@ -1,9 +1,10 @@
+using DG.Tweening;
 using GameData.Game;
 using Spine.Unity;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data;
 using UnityEngine;
-using DG.Tweening;
 
 public class Character : MonoBehaviour
 {
@@ -17,13 +18,35 @@ public class Character : MonoBehaviour
     public HpUIController hpUIController;
 
     [Header("Runtime Data")]
-    public CharacterState state;
+    public CharacterState state = CharacterState.Place;
     public CharacterAnimationData currentAnim;
 
     private float attackTimer;
     private List<GameObject> enemies = new List<GameObject>();
     private Dictionary<CharacterState, CharacterAnimationData> animationMap;
     public bool isDead = false;
+    public enum CharDirection
+    {
+        Left,
+        Right,
+        UP,
+        DOWN
+    }
+    [Header("Placing Data")]
+    public CharDirection direction = CharDirection.Left;
+    public Transform ui_component;
+    public Transform collector_component;
+    private int place_state = 0;
+    public CharacterPlaceBtn btn;
+    public LayerMask check_layer;
+    public bool buildable = false;
+    public Transform placeUI;
+    public Transform dir_cursor;
+    public LayerMask dir_layer;
+    public Transform dir_center;
+    public Transform darrow;
+    private int angle = 0;
+    public Transform hp_ui;
 
     void Awake()
     {
@@ -49,16 +72,18 @@ public class Character : MonoBehaviour
     void ValidateAndInitialize()
     {
         Debug.Assert(charData != null, "CharacterData is missing!", this);
-        Debug.Assert(charData.hp_total > 0, "HP Total must be greater than zero!", this);
         Debug.Assert(skeletonAnimation != null, "SkeletonAnimation component is missing!", this);
 
-        state = CharacterState.Idle;
+        state = CharacterState.Place;
+        GameController.instance.is_placing = true;
+        buildUIController.instance.ShowBuildable(btn.cuid.buildType);
         charData.hp_current = charData.hp_total;
 
         if (attackController == null)
             attackController = GetComponentInChildren<CharAttackController>();
 
         Debug.Assert(attackController != null, "CharAttackController component is missing!", this);
+        hpUIController.hpBar.gameObject.SetActive(false);
     }
 
     void BindSpineAnimationEvents()
@@ -80,6 +105,9 @@ public class Character : MonoBehaviour
         {
             isDead = true;
             Destroy(gameObject);
+        }else if(currentAnimationName == GetAnimationName(CharacterState.Start))
+        {
+            state = CharacterState.Idle;
         }
     }
 
@@ -106,7 +134,97 @@ public class Character : MonoBehaviour
         if (isDead) return;
 
         UpdateAnimation();
-        AttackController();
+        if (state != CharacterState.Start && state != CharacterState.Place)
+        {
+            UpdateDir();
+            AttackController();
+        }
+        else
+        {
+            if(state == CharacterState.Place && place_state == 0)
+            {
+                PlaceController();
+                if(buildable && Input.GetMouseButtonDown(1))
+                {
+                    buildUIController.instance.ClearAll();
+                    placeUI.gameObject.SetActive(true);
+                    place_state++;
+
+                }
+            }else if(state == CharacterState.Place && place_state == 1)
+            {
+                DirControl();
+                if (Input.GetMouseButtonDown(0))
+                {
+                    state = CharacterState.Start;
+                    GameController.instance.is_placing = false;
+                    placeUI.gameObject.SetActive(false);
+                }
+            }
+        }
+    }
+    void DirControl()
+    {
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        RaycastHit[] hit = Physics.RaycastAll(ray, 100, dir_layer);
+        Vector3 p = hit[0].point;
+        if (Vector3.Distance(new Vector3(p.x, p.y, dir_cursor.position.z), dir_center.transform.position) < 1.1f)
+        {
+            dir_cursor.transform.position = new Vector3(p.x, p.y, dir_cursor.position.z);
+        }
+        Vector3 d = new Vector3(p.x, p.y, dir_cursor.position.z);
+        Vector3 o = dir_center.transform.position;
+        if (d.y > o.y && Mathf.Abs(d.y - o.y) > 0.8f)
+        {
+            direction = CharDirection.Right;
+            angle = 90;
+        }
+        else if (d.y < o.y && Mathf.Abs(d.y - o.y) > 0.8f)
+        {
+            direction = CharDirection.Right;
+            angle = 270;
+        }
+        else if (d.x < o.x)
+        {
+            direction = CharDirection.Right;
+            angle = 180;
+        }
+        else if (d.x > o.x)
+        {
+            direction = CharDirection.Left;
+            angle = 0;
+        }
+        darrow.transform.eulerAngles = new Vector3(0, 0, angle);
+    }
+    void PlaceController()
+    {
+        if (place_state == 0)
+        {
+            Vector3 mp = Input.mousePosition;
+            Ray ray = Camera.main.ScreenPointToRay(mp);
+            RaycastHit[] hit = Physics.RaycastAll(ray, 100, check_layer);
+            if (hit.Length > 0)
+            {
+                if (hit[0].collider.gameObject.CompareTag(btn.cuid.buildType == BuildType.Highland ? "highland" : "ground"))
+                {
+                    transform.position = new Vector3(hit[0].transform.position.x, hit[0].transform.position.y, btn.cuid.buildType == BuildType.Highland ? -0.3f : -0.01f);
+                    buildable = true;
+                }
+                else
+                {
+                    buildable = false;
+                }
+
+            }
+            else
+            {
+                Vector3 pos = Camera.main.WorldToScreenPoint(transform.position);
+                Vector3 m_MousePos = new Vector3(Input.mousePosition.x, Input.mousePosition.y, pos.z);
+                Vector3 wp = Camera.main.ScreenToWorldPoint(m_MousePos);
+                transform.position = new Vector3(wp.x, wp.y, btn.cuid.buildType == BuildType.Highland ? -0.3f : -0.01f);
+                buildable = false;
+            }
+        }
     }
 
     void AttackController()
@@ -251,5 +369,30 @@ public class Character : MonoBehaviour
         {
             skeletonAnimation.state.Complete -= OnSpineAnimationComplete;
         }
+    }
+    void UpdateDir()
+    {
+        if (direction == CharDirection.Left)
+        {
+            transform.eulerAngles = new Vector3(-30, 0, 0);
+            ui_component.localEulerAngles = new Vector3(60, 0, 0);
+            collector_component.localEulerAngles = new Vector3(30, 0, angle);
+            placeUI.localEulerAngles = new Vector3(-60, 0, 0);
+            darrow.transform.eulerAngles = new Vector3(0, 0, -angle);
+            hp_ui.transform.eulerAngles = new Vector3(-60, 0, 0);
+        }
+        else
+        {
+            transform.eulerAngles = new Vector3(30, 180, 0);
+            ui_component.localEulerAngles = new Vector3(0, 0, 0);
+            collector_component.localEulerAngles = new Vector3(0, 0, angle);
+            placeUI.localEulerAngles = new Vector3(0, 0, 0);
+            darrow.transform.eulerAngles = new Vector3(0, 0, angle);
+            hp_ui.transform.eulerAngles = new Vector3(0, 0, 0);
+
+        }
+        MaterialPropertyBlock propertyBlock = new MaterialPropertyBlock();
+        propertyBlock.SetFloat("_angle", direction == CharDirection.Right ? -30f : 60f);
+        GetComponent<MeshRenderer>().SetPropertyBlock(propertyBlock);
     }
 }

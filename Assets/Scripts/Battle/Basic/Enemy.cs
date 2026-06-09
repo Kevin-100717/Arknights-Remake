@@ -524,7 +524,10 @@ public class Enemy : MonoBehaviour
         {
             Character character = other.gameObject.GetComponent<Character>();
             if (character != null &&
-                character.state != CharacterState.Die)
+                character.state != CharacterState.Die &&
+                character.state != CharacterState.Start &&
+                character.state != CharacterState.Place
+                )
             {
                 // 新增逻辑: 检查敌人是否有近战能力
                 if (!enemyData.haveNear)

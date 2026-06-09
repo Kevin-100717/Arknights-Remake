@@ -55,6 +55,8 @@ namespace GameData.Game
     //------------------------------------------------------
     public enum CharacterState
     {
+        Place,
+        Start,
         Attack,
         Idle,
         Die,
@@ -89,10 +91,18 @@ namespace GameData.Game
         public int current_def_num;
         public int def_num;
     }
+    public enum BuildType
+    {
+        Highland,
+        Ground
+    }
     [System.Serializable]
     public class CharacterUIData
     {
-
+        public int cost;
+        public string code;
+        public BuildType buildType;
+        public GameObject characterPrefab;
     }
     [System.Serializable]
     public class CharacterAnimationData

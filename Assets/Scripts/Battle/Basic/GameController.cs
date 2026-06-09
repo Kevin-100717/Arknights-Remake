@@ -19,6 +19,7 @@ public class GameController : MonoBehaviour
     public int cost = 20;
     public float cost_speed = 0.8f;
     public float cost_timer = 0;
+    public bool is_placing = false;
     // Start is called before the first frame update
     void Start()
     {

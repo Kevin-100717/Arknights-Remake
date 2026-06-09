@@ -9,6 +9,8 @@ TagManager:
   - Enemy
   - Character
   - node_create
+  - ground
+  - highland
   layers:
   - Default
   - TransparentFX
@@ -19,8 +21,8 @@ TagManager:
   - Point
   - Mk_Node
   - Character
-  - 
-  - 
+  - PlaceRange
+  - DirCursorLayer
   - 
   - 
   - 

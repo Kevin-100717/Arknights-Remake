@@ -2815,6 +2815,11 @@ MonoBehaviour:
   - {fileID: -1512729097, guid: c19e3eb58e9d2b640a25ef35dfa058c1, type: 3}
   speed: 1
   speedBtn: {fileID: 1414154778}
+  costImg: {fileID: 0}
+  costText: {fileID: 0}
+  cost: 20
+  cost_speed: 0.8
+  cost_timer: 0
 --- !u!4 &1842065528
 Transform:
   m_ObjectHideFlags: 0

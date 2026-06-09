@@ -72,7 +72,10 @@ public class Shoot : MonoBehaviour
 
         foreach (Character character in allCharacters)
         {
-            if (character != null && !character.isDead && character.state != CharacterState.Die)
+            if (character != null && !character.isDead && character.state != CharacterState.Die &&
+                character.state != CharacterState.Start &&
+                character.state != CharacterState.Place
+                )
             {
                 float distance = Vector3.Distance(transform.position, character.transform.position);
                 if (distance <= atk_range)
@@ -129,7 +132,9 @@ public class Shoot : MonoBehaviour
                 if (character != null && !character.isDead && character.state != CharacterState.Die)
                 {
                     // 再次确认距离（因为可能在检测间隔期间移动了）
-                    float distance = Vector3.Distance(transform.position, character.transform.position);
+                    Vector3 a = new Vector3(transform.position.x, transform.position.y,0);
+                    Vector3 b = new Vector3(character.transform.position.x, character.transform.position.y, 0);
+                    float distance = Vector3.Distance(a,b);
                     if (distance <= atk_range)
                     {
                         // 再次检查是否还能攻击这个角色
