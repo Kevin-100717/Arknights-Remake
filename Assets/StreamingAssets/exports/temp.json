@@ -2210,7 +2210,71 @@
       "fragments": [
         {
           "preDelay": 0.0,
-          "actions": []
+          "actions": [
+            {
+              "actionType": "SPAWN",
+              "managedByScheduler": false,
+              "key": "enemy_1002_nsabr",
+              "count": 1.0,
+              "preDelay": 6.0,
+              "interval": 0.0,
+              "routeIndex": 0.0,
+              "blockFragment": false,
+              "autoPreviewRoute": false,
+              "autoDisplayEnemyInfo": false,
+              "isUnharmfulAndAlwaysCountAsKilled": false,
+              "hiddenGroup": null,
+              "randomSpawnGroupKey": null,
+              "randomSpawnGroupPackKey": null,
+              "randomType": null,
+              "refreshType": null,
+              "weight": 0.0,
+              "dontBlockWave": false,
+              "forceBlockWaveInBranch": false
+            },
+            {
+              "actionType": "SPAWN",
+              "managedByScheduler": false,
+              "key": "enemy_1003_ncbow",
+              "count": 1.0,
+              "preDelay": 10.0,
+              "interval": 0.0,
+              "routeIndex": 1.0,
+              "blockFragment": false,
+              "autoPreviewRoute": false,
+              "autoDisplayEnemyInfo": false,
+              "isUnharmfulAndAlwaysCountAsKilled": false,
+              "hiddenGroup": null,
+              "randomSpawnGroupKey": null,
+              "randomSpawnGroupPackKey": null,
+              "randomType": null,
+              "refreshType": null,
+              "weight": 0.0,
+              "dontBlockWave": false,
+              "forceBlockWaveInBranch": false
+            },
+            {
+              "actionType": "SPAWN",
+              "managedByScheduler": false,
+              "key": "enemy_1041_lazerd",
+              "count": 3.0,
+              "preDelay": 18.0,
+              "interval": 5.0,
+              "routeIndex": 2.0,
+              "blockFragment": false,
+              "autoPreviewRoute": false,
+              "autoDisplayEnemyInfo": false,
+              "isUnharmfulAndAlwaysCountAsKilled": false,
+              "hiddenGroup": null,
+              "randomSpawnGroupKey": null,
+              "randomSpawnGroupPackKey": null,
+              "randomType": null,
+              "refreshType": null,
+              "weight": 0.0,
+              "dontBlockWave": false,
+              "forceBlockWaveInBranch": false
+            }
+          ]
         }
       ],
       "advancedWaveTag": null

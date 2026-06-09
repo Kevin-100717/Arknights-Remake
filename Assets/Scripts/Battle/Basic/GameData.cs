@@ -89,7 +89,11 @@ namespace GameData.Game
         public int current_def_num;
         public int def_num;
     }
+    [System.Serializable]
+    public class CharacterUIData
+    {
 
+    }
     [System.Serializable]
     public class CharacterAnimationData
     {

@@ -14,6 +14,11 @@ public class GameController : MonoBehaviour
     public List<Sprite> speedImage;
     public float speed = 1;
     public Image speedBtn;
+    public Image costImg;
+    public Text costText;
+    public int cost = 20;
+    public float cost_speed = 0.8f;
+    public float cost_timer = 0;
     // Start is called before the first frame update
     void Start()
     {
@@ -33,10 +38,22 @@ public class GameController : MonoBehaviour
         }
         speedBtn.sprite = speedImage[(int)speed - 1];
     }
+    void UpdateCost()
+    {
+        cost_timer += Time.deltaTime;
+        costText.text = cost.ToString();
+        costImg.transform.localScale = new Vector3(cost_timer / cost_speed, 1, 1);
+        if (cost_timer >= cost_speed)
+        {
+            cost_timer = 0;
+            cost++;
+        }
+    }
     // Update is called once per frame
     void Update()
     {
         UpdateGameBar();
+        UpdateCost();
         Time.timeScale = speed;
     }
 }

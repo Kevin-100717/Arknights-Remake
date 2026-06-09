@@ -1,12 +1,14 @@
 using GameData.EnemyData;
 using GameData.MapData;
+using NativeFileBrowser;
 using Newtonsoft.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
-using UnityEditor;
+//using UnityEditor;
+//using System.Windows.Forms;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -47,10 +49,16 @@ public class CreateUIController : MonoBehaviour
     }
     public void OpenFileAction()
     {
-        string path = EditorUtility.OpenFilePanel("打开的文件", "", "json");
-        if (!string.IsNullOrEmpty(path)) {
-            savePathInput.text = path;
-            MakerCore.instance.LoadMap(path,false);
+        //string path = EditorUtility.OpenFilePanel("打开的文件", "", "json");
+        var extensions = new[]
+{
+            new ExtensionFilter("MapData File", "json"),
+        };
+        var path = StandaloneFileBrowser.OpenFilePanel("打开的文件", extensions, true);
+        if (path.Length > 0)
+        {
+            savePathInput.text = path[0];
+            MakerCore.instance.LoadMap(path[0],false);
             panel.SetActive(false);
             panel1.SetActive(true);
         }
@@ -60,7 +68,7 @@ public class CreateUIController : MonoBehaviour
         panel.SetActive(true);
         panel1.SetActive(false);
         yield return null;
-        if (File.Exists(Application.streamingAssetsPath + "/exports/temp.json") && MessageBox(IntPtr.Zero, "检测到有存在的地图草稿，是否加载，若确认则加载，否则覆盖写入新地图（请及时备份）", "确认", 1) == 1)
+        if (File.Exists(UnityEngine.Application.streamingAssetsPath + "/exports/temp.json") && MessageBox(IntPtr.Zero, "检测到有存在的地图草稿，是否加载，若确认则加载，否则覆盖写入新地图（请及时备份）", "确认", 1) == 1)
         {
             loadTemp();
         }
@@ -128,7 +136,7 @@ public class CreateUIController : MonoBehaviour
     }
     public string ReadData(string path)
     {
-        string fileUrl = Application.streamingAssetsPath + path;
+        string fileUrl = UnityEngine.Application.streamingAssetsPath + path;
         using (StreamReader sr = new StreamReader(fileUrl))
         {
             string readData = sr.ReadToEnd();
