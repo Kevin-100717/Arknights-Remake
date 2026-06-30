@@ -105,7 +105,8 @@ public class Character : MonoBehaviour
         {
             isDead = true;
             Destroy(gameObject);
-        }else if(currentAnimationName == GetAnimationName(CharacterState.Start))
+        }
+        else if (currentAnimationName == GetAnimationName(CharacterState.Start))
         {
             state = CharacterState.Idle;
         }
@@ -141,23 +142,26 @@ public class Character : MonoBehaviour
         }
         else
         {
-            if(state == CharacterState.Place && place_state == 0)
+            if (state == CharacterState.Place && place_state == 0)
             {
                 PlaceController();
-                if(buildable && Input.GetMouseButtonDown(1))
+                if (buildable && Input.GetMouseButtonDown(1))
                 {
                     buildUIController.instance.ClearAll();
                     placeUI.gameObject.SetActive(true);
                     place_state++;
+                    buildUIController.instance.enable_show_range = true;
 
                 }
-            }else if(state == CharacterState.Place && place_state == 1)
+            }
+            else if (state == CharacterState.Place && place_state == 1)
             {
                 DirControl();
                 if (Input.GetMouseButtonDown(0))
                 {
                     state = CharacterState.Start;
                     GameController.instance.is_placing = false;
+                    buildUIController.instance.enable_show_range = false;
                     placeUI.gameObject.SetActive(false);
                 }
             }
@@ -176,25 +180,30 @@ public class Character : MonoBehaviour
         Vector3 o = dir_center.transform.position;
         if (d.y > o.y && Mathf.Abs(d.y - o.y) > 0.8f)
         {
+            Debug.Log("1");
             direction = CharDirection.Right;
             angle = 90;
         }
         else if (d.y < o.y && Mathf.Abs(d.y - o.y) > 0.8f)
         {
+            Debug.Log("2");
             direction = CharDirection.Right;
             angle = 270;
         }
         else if (d.x < o.x)
         {
+            Debug.Log("3");
             direction = CharDirection.Right;
-            angle = 180;
+            angle = 0;
         }
         else if (d.x > o.x)
         {
-            direction = CharDirection.Left;
-            angle = 0;
+            Debug.Log("4");
+            direction = CharDirection.Left ;
+            angle = 180;
         }
         darrow.transform.eulerAngles = new Vector3(0, 0, angle);
+        collector_component.localEulerAngles = new Vector3(0, 0, angle);
     }
     void PlaceController()
     {
@@ -376,9 +385,9 @@ public class Character : MonoBehaviour
         {
             transform.eulerAngles = new Vector3(-30, 0, 0);
             ui_component.localEulerAngles = new Vector3(60, 0, 0);
-            collector_component.localEulerAngles = new Vector3(30, 0, angle);
+            collector_component.localEulerAngles = new Vector3(-30, 0, angle - 180);
             placeUI.localEulerAngles = new Vector3(-60, 0, 0);
-            darrow.transform.eulerAngles = new Vector3(0, 0, -angle);
+            darrow.transform.eulerAngles = new Vector3(0, 0, angle-180);
             hp_ui.transform.eulerAngles = new Vector3(-60, 0, 0);
         }
         else

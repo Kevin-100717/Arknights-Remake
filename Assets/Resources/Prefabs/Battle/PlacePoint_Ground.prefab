@@ -144,6 +144,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   show_range_ui: {fileID: 974823737136593596}
   buildable_ui: {fileID: 7444144663431627937}
+  canbuild: 0
+  rangeCollectLayer:
+    serializedVersion: 2
+    m_Bits: 2048
 --- !u!1 &7444144663431627937
 GameObject:
   m_ObjectHideFlags: 0

@@ -32,12 +32,15 @@ public class GameController : MonoBehaviour
     }
     public void UpdateGameSpeed()
     {
-        speed++;
-        if(speed > 3)
+        if (!is_placing)
         {
-            speed = 1;
+            speed++;
+            if (speed > 3)
+            {
+                speed = 1;
+            }
+            speedBtn.sprite = speedImage[(int)speed - 1];
         }
-        speedBtn.sprite = speedImage[(int)speed - 1];
     }
     void UpdateCost()
     {
@@ -55,6 +58,13 @@ public class GameController : MonoBehaviour
     {
         UpdateGameBar();
         UpdateCost();
-        Time.timeScale = speed;
+        if (!is_placing)
+        {
+            Time.timeScale = speed;
+        }
+        else
+        {
+            Time.timeScale = 0.1f;
+        }
     }
 }

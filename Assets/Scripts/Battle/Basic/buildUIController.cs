@@ -7,7 +7,8 @@ public class buildUIController : MonoBehaviour
 {
     // Start is called before the first frame update
     public static buildUIController instance;
-    public List<BuildShowUI> bsui; 
+    public List<BuildShowUI> bsui;
+    public bool enable_show_range = false;
     void Start()
     {
         instance = this;
@@ -33,7 +34,7 @@ public class buildUIController : MonoBehaviour
         string tag = bt == BuildType.Highland ? "highland" : "ground";
         foreach(BuildShowUI bui in bsui)
         {
-            if(bui.tag == tag)
+            if(bui.tag == tag && bui.canbuild)
             {
                 bui.buildable_ui.SetActive(true);
             }
@@ -43,6 +44,5 @@ public class buildUIController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
     }
 }

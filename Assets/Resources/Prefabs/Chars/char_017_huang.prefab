@@ -711,7 +711,7 @@ GameObject:
   - component: {fileID: 1773368294269074766}
   - component: {fileID: 5826170912359209314}
   - component: {fileID: 8443177562556158436}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: Range
   m_TagString: AttackRange
   m_Icon: {fileID: 0}
@@ -1742,7 +1742,7 @@ GameObject:
   - component: {fileID: 6003552636863751855}
   - component: {fileID: 5493998682993768297}
   - component: {fileID: 5544117332806325432}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: Range (1)
   m_TagString: AttackRange
   m_Icon: {fileID: 0}
