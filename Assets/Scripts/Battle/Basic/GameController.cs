@@ -20,6 +20,12 @@ public class GameController : MonoBehaviour
     public float cost_speed = 0.8f;
     public float cost_timer = 0;
     public bool is_placing = false;
+    private bool pause = false;
+    public GameObject pauseFrame;
+    public Image pauseImage;
+    public Sprite pauseSpr;
+    public Sprite runSpr;
+    private float timeTemp;
     // Start is called before the first frame update
     void Start()
     {
@@ -51,6 +57,23 @@ public class GameController : MonoBehaviour
         {
             cost_timer = 0;
             cost++;
+        }
+    }
+    public void PauseHandler()
+    {
+        pause = !pause;
+        if (pause)
+        {
+            pauseFrame.SetActive(true);
+            pauseImage.sprite = pauseSpr;
+            timeTemp = speed;
+            speed = 0;
+        }
+        else
+        {
+            pauseFrame.SetActive(false);
+            pauseImage.sprite = runSpr;
+            speed = timeTemp;
         }
     }
     // Update is called once per frame

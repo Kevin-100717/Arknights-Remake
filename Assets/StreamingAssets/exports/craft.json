@@ -2371,7 +2371,59 @@
       "visitEveryNodeCenter": false,
       "visitEveryCheckPoint": false
     },
-    null
+    {
+      "motionMode": "WALK",
+      "startPosition": {
+        "row": 5.0,
+        "col": 15.0
+      },
+      "endPosition": {
+        "row": 5.0,
+        "col": 1.0
+      },
+      "spawnRandomRange": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "spawnOffset": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "checkpoints": [
+        {
+          "type": "MOVE",
+          "time": 0.0,
+          "position": {
+            "row": 5.0,
+            "col": 12.0
+          },
+          "reachOffset": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "randomizeReachOffset": false,
+          "reachDistance": 0.0
+        },
+        {
+          "type": "WAIT_FOR_SECONDS",
+          "time": 20.0,
+          "position": {
+            "row": 5.0,
+            "col": 12.0
+          },
+          "reachOffset": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "randomizeReachOffset": false,
+          "reachDistance": 0.0
+        }
+      ],
+      "allowDiagonalMove": true,
+      "visitEveryTileCenter": false,
+      "visitEveryNodeCenter": false,
+      "visitEveryCheckPoint": false
+    }
   ],
   "extraRoutes": null,
   "enemies": null,

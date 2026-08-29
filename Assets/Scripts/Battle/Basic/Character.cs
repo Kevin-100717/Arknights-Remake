@@ -396,8 +396,8 @@ public class Character : MonoBehaviour
             ui_component.localEulerAngles = new Vector3(0, 0, 0);
             collector_component.localEulerAngles = new Vector3(0, 0, angle);
             placeUI.localEulerAngles = new Vector3(0, 0, 0);
-            darrow.transform.eulerAngles = new Vector3(0, 0, angle);
-            hp_ui.transform.eulerAngles = new Vector3(0, 0, 0);
+            darrow.transform.eulerAngles = new Vector3(0, 0, 180-angle);
+            hp_ui.transform.eulerAngles = new Vector3(-30, 0, 0);
 
         }
         MaterialPropertyBlock propertyBlock = new MaterialPropertyBlock();
