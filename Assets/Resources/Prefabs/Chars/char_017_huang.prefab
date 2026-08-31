@@ -226,6 +226,7 @@ MonoBehaviour:
     max_atk_num: 3
     current_def_num: 0
     def_num: 3
+    respawn_time: 70
   characterAnimationDatas:
   - state: 3
     animationName: Idle

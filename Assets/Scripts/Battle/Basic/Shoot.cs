@@ -77,7 +77,8 @@ public class Shoot : MonoBehaviour
                 character.state != CharacterState.Place
                 )
             {
-                float distance = Vector3.Distance(transform.position, character.transform.position);
+                float distance = Vector3.Distance(new Vector3(transform.position.x, transform.position.y,0),
+                    character.transform.position);
                 if (distance <= atk_range)
                 {
                     // 检查角色是否已经被足够多的敌人阻挡

@@ -90,6 +90,7 @@ namespace GameData.Game
         public int max_atk_num;
         public int current_def_num;
         public int def_num;
+        public int respawn_time;
     }
     public enum BuildType
     {

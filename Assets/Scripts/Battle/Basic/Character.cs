@@ -378,6 +378,8 @@ public class Character : MonoBehaviour
         {
             skeletonAnimation.state.Complete -= OnSpineAnimationComplete;
         }
+        btn.gameObject.SetActive(true);
+        btn.StartRespawn(charData.respawn_time);
     }
     void UpdateDir()
     {
