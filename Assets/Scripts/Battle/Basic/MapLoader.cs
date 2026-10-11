@@ -1,14 +1,15 @@
+using GameData.MapData;
 using Newtonsoft.Json;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
-using GameData.MapData;
 
 public class MapLoader : MonoBehaviour
 {
     public string mapDataJsonFilePath;
     public BattleData battleData;
+
     [Header("地图预制件")]
     public GameObject walkableNodePrefab;
     public GameObject wallNodePrefab;
@@ -17,105 +18,105 @@ public class MapLoader : MonoBehaviour
     public Transform buildRoot;
     public GameObject ground_buildable_prefab;
     public GameObject highland_buildable_prefab;
-    // Start is called before the first frame update
+
     void Start()
     {
         Load();
     }
+
     public void Load()
     {
-        foreach (Transform child in root)
+        if (string.IsNullOrEmpty(mapDataJsonFilePath)) return;
+
+        if (!File.Exists(Application.streamingAssetsPath + mapDataJsonFilePath))
         {
-            Destroy(child.gameObject);
-            Debug.Log("clear child");
+            Debug.LogWarning($"[MapLoader] 关卡文件不存在，跳过加载: {mapDataJsonFilePath}");
+            return;
         }
-        battleData = JsonConvert.DeserializeObject<BattleData>(ReadData(mapDataJsonFilePath));
+
+        ClearChildren(root);
+        ClearChildren(buildRoot);
+
+        string json;
+        try
+        {
+            json = ReadData(mapDataJsonFilePath);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"[MapLoader] 读取关卡失败: {mapDataJsonFilePath}\n{e.Message}");
+            return;
+        }
+
+        battleData = JsonConvert.DeserializeObject<BattleData>(json);
+        if (battleData == null || battleData.MapData == null || battleData.MapData.Map == null)
+        {
+            Debug.LogError($"[MapLoader] 关卡数据无效: {mapDataJsonFilePath}");
+            return;
+        }
+
+        MapCoord.Height = battleData.MapData.Map.Count;
         LoadMap();
-        if (EnemySpawner.Instance)
-        {
-            Debug.Log(battleData.Waves.Count);
+
+        if (GameController.instance != null)
+            GameController.instance.ApplyOptions(battleData.Options);
+
+        if (EnemySpawner.Instance != null)
             EnemySpawner.Instance.LoadEnemyData(battleData);
-        }
     }
-    // Update is called once per frame
-    void Update()
+
+    static void ClearChildren(Transform parent)
     {
-        
+        if (parent == null) return;
+        foreach (Transform child in parent)
+            Destroy(child.gameObject);
     }
+
     public void LoadMap()
     {
         MapDataEntity mapData = battleData.MapData;
         List<TileEntity> tiles = mapData.Tiles;
-        int x = 0;
-        int y = mapData.Map.Count-1;
-        foreach (List<int> row in mapData.Map)
+        int height = mapData.Map.Count;
+
+        for (int row = 0; row < height; row++)
         {
-            foreach(int cell in row)
+            float y = MapCoord.ToWorldY(row);
+            for (int col = 0; col < mapData.Map[row].Count; col++)
             {
-                TileEntity tile = tiles[cell];
-                GameObject t,t2;
-                if(tile.PassableMask == "ALL")
-                {
-                    t = Instantiate(walkableNodePrefab, new Vector3(x, y,0), Quaternion.identity);
-                }
-                else
-                {
-                    //Debug.Log("createWall");
-                    t = Instantiate(wallNodePrefab, new Vector3(x, y, 0), Quaternion.identity);
-                }
-                //if (tile.BuildableType == "MELEE" || tile.BuildableType == "ALL")
-                //{
-                //    //ground
-                //    t2 = Instantiate(ground_buildable_prefab, new Vector3(x, y, 0), Quaternion.identity);
-                //    t2.transform.SetParent(buildRoot);
-                //}
-                //else if (tile.BuildableType == "RANGED")
-                //{
-                //    //ground
-                //    t2 = Instantiate(highland_buildable_prefab, new Vector3(x, y, 0), Quaternion.identity);
-                //    t2.transform.SetParent(buildRoot);
-                //}
-                if(tile.HeightType == "HIGHLAND")
-                {
-                    t2 = Instantiate(highland_buildable_prefab, new Vector3(x, y, 0), Quaternion.identity);
-                    t2.transform.SetParent(buildRoot);
-                }
-                else
-                {
-                    t2 = Instantiate(ground_buildable_prefab, new Vector3(x, y, 0), Quaternion.identity);
-                    t2.transform.SetParent(buildRoot);
-                }
-                if(tile.BuildableType == "NONE")
-                {
-                    t2.GetComponent<BuildShowUI>().canbuild = false;
-                }
-                else
-                {
-                    t2.GetComponent<BuildShowUI>().canbuild = true;
-                }
+                TileEntity tile = tiles[mapData.Map[row][col]];
+                GameObject prefab = tile.PassableMask == "ALL" ? walkableNodePrefab : wallNodePrefab;
+                GameObject t = Instantiate(prefab, new Vector3(col, y, 0), Quaternion.identity);
                 t.transform.SetParent(root);
-                x++;
+
+                GameObject plate = Instantiate(
+                    tile.HeightType == "HIGHLAND" ? highland_buildable_prefab : ground_buildable_prefab,
+                    new Vector3(col, y, 0), Quaternion.identity);
+                plate.transform.SetParent(buildRoot);
+
+                BuildShowUI buildUI = plate.GetComponent<BuildShowUI>();
+                if (buildUI != null)
+                    buildUI.canbuild = tile.BuildableType != "NONE";
             }
-            x = 0;
-            y--;
         }
-        buildUIController.instance.LoadUI();
-        StartCoroutine(waitScan());
-        
+
+        if (buildUIController.instance != null)
+            buildUIController.instance.LoadUI();
+
+        StartCoroutine(WaitScan());
     }
-    IEnumerator waitScan()
+
+    IEnumerator WaitScan()
     {
         yield return null;
-        astarPath.Scan();
+        if (astarPath != null)
+            astarPath.Scan();
     }
+
     public string ReadData(string path)
     {
-        string fileUrl = Application.streamingAssetsPath+path;
-        using (StreamReader sr = new StreamReader(fileUrl))
+        using (StreamReader sr = new StreamReader(Application.streamingAssetsPath + path))
         {
-            string readData = sr.ReadToEnd();
-            sr.Close();
-            return readData;
+            return sr.ReadToEnd();
         }
     }
 }

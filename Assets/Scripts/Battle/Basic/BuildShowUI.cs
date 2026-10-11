@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class BuildShowUI : MonoBehaviour
@@ -8,31 +6,16 @@ public class BuildShowUI : MonoBehaviour
     public GameObject buildable_ui;
     public bool canbuild;
     public LayerMask rangeCollectLayer;
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
 
-    // Update is called once per frame
     void Update()
     {
-        if (buildUIController.instance.enable_show_range)
+        bool show = false;
+        if (buildUIController.instance != null && buildUIController.instance.enable_show_range)
         {
-            Debug.DrawRay(transform.position+new Vector3(0,0,1), Vector3.forward * -100f, Color.red);
-            RaycastHit[] hits = Physics.RaycastAll(transform.position + new Vector3(0, 0, 1), Vector3.forward*-1, 100f, rangeCollectLayer);
-            if (hits.Length > 0) 
-            {
-                show_range_ui.SetActive(true);
-            }
-            else
-            {
-                show_range_ui.SetActive(false);
-            }
+            Vector3 origin = transform.position + new Vector3(0, 0, 1);
+            show = Physics.Raycast(origin, Vector3.back, 100f, rangeCollectLayer);
         }
-        else
-        {
-            show_range_ui.SetActive(false);
-        }
+        if (show_range_ui.activeSelf != show)
+            show_range_ui.SetActive(show);
     }
 }

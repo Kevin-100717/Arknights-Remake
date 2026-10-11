@@ -5,6 +5,21 @@ using UnityEngine;
 
 namespace GameData.MapData
 {
+    /// <summary>
+    /// 关卡坐标约定：mapData 数组行 0 为地图最上方一行，显示/世界坐标 y = Height - 1 - row。
+    /// 仅用于 mapData（地图地块）；官方 routes 的 (row, col) 是独立约定，
+    /// row 直接等于世界 y（自下而上）、col 直接等于世界 x，不要再翻转。
+    /// </summary>
+    public static class MapCoord
+    {
+        public static int Height { get; set; } = -1;
+
+        public static float ToWorldY(float mapRow)
+        {
+            return Height < 0 ? mapRow : Height - 1 - mapRow;
+        }
+    }
+
     public class BattleData
     {
         [JsonProperty("options")]
@@ -225,6 +240,26 @@ namespace GameData.MapData
 
         [JsonProperty("visitEveryCheckPoint")]
         public bool VisitEveryCheckPoint { get; set; }
+
+        /// <summary>
+        /// 深拷贝 checkpoint 列表，避免运行时脚本向共享路线追加节点而污染数据。
+        /// </summary>
+        public RouteEntity Clone()
+        {
+            return new RouteEntity
+            {
+                MotionMode = MotionMode,
+                StartPosition = StartPosition,
+                EndPosition = EndPosition,
+                SpawnRandomRange = SpawnRandomRange,
+                SpawnOffset = SpawnOffset,
+                Checkpoints = Checkpoints == null ? new List<CheckpointEntity>() : new List<CheckpointEntity>(Checkpoints),
+                AllowDiagonalMove = AllowDiagonalMove,
+                VisitEveryTileCenter = VisitEveryTileCenter,
+                VisitEveryNodeCenter = VisitEveryNodeCenter,
+                VisitEveryCheckPoint = VisitEveryCheckPoint
+            };
+        }
     }
 
     public class PositionEntity

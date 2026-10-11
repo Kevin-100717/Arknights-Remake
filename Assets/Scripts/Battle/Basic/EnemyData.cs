@@ -1,11 +1,11 @@
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Text;
 
-namespace GameData.EnemyData
+namespace GameData.EnemyDatabase
 {
-    public class EnemyData
+    /// <summary>enemy_database.json 的根对象。</summary>
+    public class EnemyDatabase
     {
         [JsonProperty("enemies")]
         public List<EnemiesEntity> Enemies { get; set; }

@@ -266,11 +266,13 @@ MonoBehaviour:
       damage: 100
       type: 0
     atk_interval: 999
+    attack_speed: 100
     def: 0
     magic_def: 0
     speed: 1.4
-    dieAddToCount: 0
+    dieAddToCount: 1
     haveNear: 0
+    haveStart: 0
     type: 1
   hpUIController:
     hpBar: {fileID: 3238620992675061167}
@@ -357,6 +359,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 23546542f2024424aa4e4aebcbfc3b12, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  taskList: []
+  nextEnemyTask: 0
 --- !u!1 &3599960417103944927
 GameObject:
   m_ObjectHideFlags: 0

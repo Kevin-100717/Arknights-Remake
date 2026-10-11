@@ -1,48 +1,53 @@
 using GameData.Game;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class buildUIController : MonoBehaviour
 {
-    // Start is called before the first frame update
     public static buildUIController instance;
     public List<BuildShowUI> bsui;
     public bool enable_show_range = false;
-    void Start()
+
+    void Awake()
     {
         instance = this;
     }
+
     public void LoadUI()
     {
-        foreach(Transform child in gameObject.transform)
+        // 重新加载地图时先清空，避免列表重复累加与残留已销毁对象
+        bsui.Clear();
+        foreach (Transform child in transform)
         {
-            bsui.Add(child.GetComponent<BuildShowUI>());
+            BuildShowUI ui = child.GetComponent<BuildShowUI>();
+            if (ui != null)
+                bsui.Add(ui);
         }
     }
+
+    void PruneDestroyed()
+    {
+        bsui.RemoveAll(ui => ui == null);
+    }
+
     public void ClearAll()
     {
-        foreach(BuildShowUI ui in bsui)
+        PruneDestroyed();
+        foreach (BuildShowUI ui in bsui)
         {
             ui.show_range_ui.SetActive(false);
             ui.buildable_ui.SetActive(false);
         }
     }
+
     public void ShowBuildable(BuildType bt)
     {
         ClearAll();
         string tag = bt == BuildType.Highland ? "highland" : "ground";
-        foreach(BuildShowUI bui in bsui)
+        foreach (BuildShowUI bui in bsui)
         {
-            if(bui.tag == tag && bui.canbuild)
-            {
+            if (bui.CompareTag(tag) && bui.canbuild)
                 bui.buildable_ui.SetActive(true);
-            }
         }
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
     }
 }

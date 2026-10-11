@@ -1,6 +1,4 @@
 using GameData.MapData;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -18,16 +16,15 @@ public class EnemyDataUI : MonoBehaviour
     }
     public ActionEntity GetEnemyData()
     {
-        ActionEntity entity = new ActionEntity
+        return new ActionEntity
         {
             ActionType = "SPAWN",
             Key = enemy_key_input.text,
-            RouteIndex = int.Parse(routeID_input.text),
-            PreDelay = float.Parse(time_input.text),
-            Count = int.Parse(repeat_input.text),
-            Interval = float.Parse(interval_input.text)
+            RouteIndex = int.TryParse(routeID_input.text, out int route) ? route : 0,
+            PreDelay = float.TryParse(time_input.text, out float delay) ? Mathf.Max(0f, delay) : 0f,
+            Count = int.TryParse(repeat_input.text, out int count) ? Mathf.Max(1, count) : 1,
+            Interval = float.TryParse(interval_input.text, out float interval) ? Mathf.Max(0f, interval) : 0f
         };
-        return entity;
     }
     public void SetUI(ActionEntity actionEntity)
     {
@@ -37,10 +34,5 @@ public class EnemyDataUI : MonoBehaviour
         repeat_input.text = actionEntity.Count.ToString();
         interval_input.text = actionEntity.Interval.ToString();
         time_input.text = actionEntity.PreDelay.ToString();
-    }
-    // Update is called once per frame
-    void Update()
-    {
-        
     }
 }

@@ -1,6 +1,4 @@
 using Pathfinding;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class EnemyMove : MonoBehaviour
@@ -11,49 +9,52 @@ public class EnemyMove : MonoBehaviour
     [HideInInspector]
     public Vector3 nextTargetPosition;
     public Seeker seeker;
-    Path path;
-    int currentWaypoint = 0;
-    Vector3 targetLastPosition;
-    void Start()
-    {
-        // seeker = GetComponent<Seeker>();
-    }
+
+    private Path path;
+    private int currentWaypoint;
+    private Vector3 exactTarget;                                // 精确目标（含 reachOffset 小数）
+    private Vector3 targetLastPosition = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
+    private MeshRenderer meshRenderer;
+    private MaterialPropertyBlock propertyBlock;
 
     public void OnPathComplete(Path p)
     {
         if (!p.error)
         {
+            // 寻路节点是整数格心，需把终点替换为精确目标（保留 reachOffset 等小数），
+            // 否则敌人会在格心停下，位置像被 int 取整
+            if (p.vectorPath != null && p.vectorPath.Count > 0)
+                p.vectorPath[p.vectorPath.Count - 1] = exactTarget;
             path = p;
             currentWaypoint = 0;
         }
     }
+
     public void UpdatePath(Vector3 targetPosition)
     {
-        if (Vector3.Distance(targetPosition, targetLastPosition) > 0.1f)
-        {
-            targetLastPosition = targetPosition;
-            seeker.StartPath(transform.position, targetPosition, OnPathComplete);
-            reachedEndOfPath = false;
-        }
+        // 阈值极小：仅拦截完全相同的重复目标，避免 reachOffset 小数差异被误判
+        if (Vector3.Distance(targetPosition, targetLastPosition) <= 0.0001f) return;
+
+        targetLastPosition = targetPosition;
+        exactTarget = targetPosition;
+        reachedEndOfPath = false;
+        seeker.StartPath(transform.position, targetPosition, OnPathComplete);
     }
+
     public void NextTarget()
     {
-        if (path == null)
-        {
-            return;
-        }
+        if (path == null) return;
         reachedEndOfPath = false;
 
+        float reachDist = Mathf.Max(nextWaypointDistance, 0.01f);
         float distanceToWaypoint;
         while (true)
         {
             distanceToWaypoint = Vector3.Distance(transform.position, path.vectorPath[currentWaypoint]);
-            if (distanceToWaypoint < nextWaypointDistance)
+            if (distanceToWaypoint < reachDist)
             {
                 if (currentWaypoint + 1 < path.vectorPath.Count)
-                {
                     currentWaypoint++;
-                }
                 else
                 {
                     reachedEndOfPath = true;
@@ -65,24 +66,27 @@ public class EnemyMove : MonoBehaviour
                 break;
             }
         }
-        var speedFactor = reachedEndOfPath ? Mathf.Sqrt(distanceToWaypoint / nextWaypointDistance) : 1f;
-        if (!reachedEndOfPath)
+
+        if (reachedEndOfPath)
         {
-            nextTargetPosition = path.vectorPath[currentWaypoint];
-            Vector3 dir = (nextTargetPosition - transform.position).normalized;
-            Vector3 velocity = dir * speed * speedFactor;
-            transform.position += velocity * Time.deltaTime;
-            if(path.vectorPath[currentWaypoint].x > transform.position.x){
-                transform.eulerAngles = new Vector3(-30,0,0);
-            }else{
-                transform.eulerAngles = new Vector3(30,180,0);
-                
-            }
-            MaterialPropertyBlock propertyBlock = new MaterialPropertyBlock();
-            propertyBlock.SetFloat("_angle",path.vectorPath[currentWaypoint].x <= transform.position.x ? -30f : 60f);
-            GetComponent<MeshRenderer>().SetPropertyBlock(propertyBlock);
-        }
-        else
+            // 到达时精确落位到目标点（容差内的最后一段直接对齐）
+            transform.position = exactTarget;
             path = null;
+            return;
+        }
+
+        nextTargetPosition = path.vectorPath[currentWaypoint];
+        Vector3 toTarget = nextTargetPosition - transform.position;
+        // 步长不超过剩余距离：精确停在目标点（支持半格等小数位置），避免冲过后来回抖动
+        float step = Mathf.Min(speed * Time.deltaTime, toTarget.magnitude);
+        transform.position += toTarget.normalized * step;
+
+        bool movingRight = nextTargetPosition.x > transform.position.x;
+        transform.eulerAngles = movingRight ? new Vector3(-30, 0, 0) : new Vector3(30, 180, 0);
+
+        if (meshRenderer == null) meshRenderer = GetComponent<MeshRenderer>();
+        if (propertyBlock == null) propertyBlock = new MaterialPropertyBlock();
+        propertyBlock.SetFloat("_angle", movingRight ? 60f : -30f);
+        meshRenderer.SetPropertyBlock(propertyBlock);
     }
 }

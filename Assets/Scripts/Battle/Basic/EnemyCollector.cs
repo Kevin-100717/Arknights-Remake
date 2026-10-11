@@ -1,6 +1,4 @@
-using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public class EnemyCollector : MonoBehaviour
@@ -10,62 +8,47 @@ public class EnemyCollector : MonoBehaviour
         Enemy,
         Character
     }
+
     public CollectType collectType;
     public List<GameObject> collectList;
-    // Start is called before the first frame update
-    void Start()
+
+    private void UpdateCollectList(bool remove, GameObject obj)
     {
-        
+        if (remove)
+            collectList.Remove(obj);
+        else if (!collectList.Contains(obj))
+            collectList.Add(obj);
     }
 
-    private void UpdateCollectList(bool delete, GameObject charObj)
-    {
-        if (delete && collectList.Contains(charObj))
-        {
-            collectList.Remove(charObj);
-        }
-        else if (!delete && !collectList.Contains(charObj))
-        {
-            collectList.Add(charObj);
-        }
-    }
-    // Update is called once per frame
     void Update()
     {
-        List<GameObject> tempList = new List<GameObject>();
-        foreach (GameObject obj in collectList)
+        // 清理已死亡或已销毁的目标
+        collectList.RemoveAll(obj =>
         {
-            if (obj && obj.GetComponent<Enemy>() != null && obj.GetComponent<Enemy>().state == GameData.Game.EnemyState.Die)
-            {
-                tempList.Add(obj);
-            }
-        }
-        foreach (GameObject obj in tempList)
-        {
-            collectList.Remove(obj);
-        }
+            if (obj == null) return true;
+            Enemy enemy = obj.GetComponent<Enemy>();
+            if (enemy != null)
+                return enemy.isDead || enemy.state == GameData.Game.EnemyState.Die;
+            Character character = obj.GetComponent<Character>();
+            if (character != null)
+                return character.isDead || character.state == GameData.Game.CharacterState.Die;
+            return false;
+        });
     }
+
     private void OnTriggerEnter(Collider collision)
     {
-        //Debug.Log(collision.gameObject.name);
-        if (collectType == CollectType.Character && collision.gameObject.tag == "Character")
-        {
+        if (collectType == CollectType.Character && collision.CompareTag("Character"))
             UpdateCollectList(false, collision.gameObject);
-        }
-        else if (collectType == CollectType.Enemy && collision.gameObject.tag == "Enemy")
-        {
+        else if (collectType == CollectType.Enemy && collision.CompareTag("Enemy"))
             UpdateCollectList(false, collision.gameObject);
-        }
     }
+
     private void OnTriggerExit(Collider collision)
     {
-        if (collectType == CollectType.Character && collision.gameObject.tag == "Character")
-        {
+        if (collectType == CollectType.Character && collision.CompareTag("Character"))
             UpdateCollectList(true, collision.gameObject);
-        }
-        else if (collectType == CollectType.Enemy && collision.gameObject.tag == "Enemy")
-        {
+        else if (collectType == CollectType.Enemy && collision.CompareTag("Enemy"))
             UpdateCollectList(true, collision.gameObject);
-        }
     }
 }

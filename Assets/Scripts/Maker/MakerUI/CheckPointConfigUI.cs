@@ -1,8 +1,8 @@
 using UnityEngine;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.UI;
 using GameData.MapData;
+
 public class CheckPointConfigUI : MonoBehaviour
 {
     public static CheckPointConfigUI instance;
@@ -19,16 +19,15 @@ public class CheckPointConfigUI : MonoBehaviour
         {
             RandomizeReachOffset = false,
             ReachDistance = 0.0f,
-            ReachOffset=new ReachOffsetEntity { X=0,Y=0 }
+            ReachOffset = new ReachOffsetEntity { X = 0, Y = 0 }
         };
         r.Type = checkPointType[checkPointTypeSelect.value];
-        if(r.Type == "WAIT_FOR_SECONDS")
+        if (r.Type == "WAIT_FOR_SECONDS")
         {
-            Debug.Log(waitTimeInput.text);
-            r.Time = float.Parse(waitTimeInput.text);
+            r.Time = float.TryParse(waitTimeInput.text, out float t) ? Mathf.Max(0f, t) : 0f;
         }
         return r;
-    } 
+    }
     public int getIndexByCkpt(CheckpointEntity ckpt)
     {
         foreach(string ckptt in checkPointType)

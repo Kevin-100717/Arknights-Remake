@@ -1,11 +1,9 @@
 ﻿using GameData.Game;
-using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
+
 public class CharacterPlaceBtn : MonoBehaviour
 {
-
-    // Use this for initialization
     public CharacterUIData cuid;
     public GameObject respawnFrame;
     public Image respawnCircle;
@@ -13,19 +11,18 @@ public class CharacterPlaceBtn : MonoBehaviour
     private bool isRespawning = false;
     private float rspawnTime;
     private float rspawnTimeTotal;
-    void Start()
-    {
 
-    }
     public void OnClick()
     {
-        if(GameController.instance.cost >= cuid.cost && !GameController.instance.is_placing && !isRespawning)
-        {
-            GameController.instance.cost -= cuid.cost;
-            gameObject.SetActive(false);
-            GameObject character = Instantiate(cuid.characterPrefab);
-            character.GetComponent<Character>().btn = this;
-        }
+        GameController gc = GameController.instance;
+        if (gc == null || gc.is_placing || isRespawning) return;
+        if (gc.cost < cuid.cost) return;
+        if (gc.characterLimit > 0 && FindObjectsOfType<Character>().Length >= gc.characterLimit) return;
+
+        gc.cost -= cuid.cost;
+        gameObject.SetActive(false);
+        GameObject character = Instantiate(cuid.characterPrefab);
+        character.GetComponent<Character>().btn = this;
     }
     public void StartRespawn(int time)
     {
@@ -34,7 +31,7 @@ public class CharacterPlaceBtn : MonoBehaviour
         rspawnTimeTotal = time;
         respawnFrame.SetActive(true);
     }
-    // Update is called once per frame
+
     void Update()
     {
         if (isRespawning)

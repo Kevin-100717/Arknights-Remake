@@ -1,7 +1,6 @@
 using GameData.MapData;
 using Newtonsoft.Json;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using UnityEngine;
@@ -108,10 +107,5 @@ public class FileExporter : MonoBehaviour
                 battleData.Waves[0].Fragments[0].Actions.Add(edui.GetEnemyData());
             }
          }
-    }
-    // Update is called once per frame
-    void Update()
-    {
-        
     }
 }

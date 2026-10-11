@@ -49,6 +49,8 @@ public class PaoDan : MonoBehaviour
 
     void Update()
     {
+        if (bulletController == null) return;
+
         // 保存当前位置用于计算方向
         Vector3 currentPosition = transform.position;
 
@@ -99,30 +101,9 @@ public class PaoDan : MonoBehaviour
     /// </summary>
     private void HitTarget()
     {
-        // 让BulletController处理伤害和销毁
+        // 统一交给 BulletController.Hit() 结算，避免与直线弹道逻辑重复扣血
         if (bulletController != null)
-        {
-            // 手动触发命中检测
-            if (bulletController.target != null)
-            {
-                // 如果有目标，直接对目标造成伤害
-                if (!bulletController.target.isDead && bulletController.target.state != CharacterState.Die)
-                {
-                    bulletController.target.TakeDamage(bulletController.damage);
-                }
-            }
-            else
-            {
-                // 如果没有目标，检查是否接近目标点
-                if (Vector3.Distance(transform.position, bulletController.dist) < 0.2f)
-                {
-                    // 这里可以添加对位置伤害的处理（如果有需要的话）
-                }
-            }
-
-            // 销毁炮弹
-            Destroy(gameObject);
-        }
+            bulletController.Hit();
     }
 
     private void OnDrawGizmosSelected()

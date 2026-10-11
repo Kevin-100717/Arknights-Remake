@@ -1,9 +1,7 @@
 using DG.Tweening;
 using GameData.Game;
 using Spine.Unity;
-using System.Collections;
 using System.Collections.Generic;
-using System.Data;
 using UnityEngine;
 
 public class Character : MonoBehaviour
@@ -20,6 +18,10 @@ public class Character : MonoBehaviour
     [Header("Runtime Data")]
     public CharacterState state = CharacterState.Place;
     public CharacterAnimationData currentAnim;
+
+    /// <summary>部署顺序计数（官方索敌：敌方优先攻击最后部署的我方单位）。</summary>
+    public static int DeployCounter;
+    public int deployOrder;
 
     private float attackTimer;
     private List<GameObject> enemies = new List<GameObject>();
@@ -98,7 +100,7 @@ public class Character : MonoBehaviour
 
         if (currentAnimationName == GetAnimationName(CharacterState.Attack))
         {
-            attackTimer = charData.atk_interval;
+            // 攻击间隔在出手时已开始计时，这里只转入间隔状态
             state = CharacterState.Attack_interval;
         }
         else if (currentAnimationName == GetAnimationName(CharacterState.Die))
@@ -160,6 +162,7 @@ public class Character : MonoBehaviour
                 if (Input.GetMouseButtonDown(0))
                 {
                     state = CharacterState.Start;
+                    deployOrder = ++DeployCounter;
                     GameController.instance.is_placing = false;
                     buildUIController.instance.enable_show_range = false;
                     placeUI.gameObject.SetActive(false);
@@ -171,6 +174,8 @@ public class Character : MonoBehaviour
     {
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         RaycastHit[] hit = Physics.RaycastAll(ray, 100, dir_layer);
+        if (hit.Length == 0) return;
+
         Vector3 p = hit[0].point;
         if (Vector3.Distance(new Vector3(p.x, p.y, dir_cursor.position.z), dir_center.transform.position) < 1.1f)
         {
@@ -180,26 +185,22 @@ public class Character : MonoBehaviour
         Vector3 o = dir_center.transform.position;
         if (d.y > o.y && Mathf.Abs(d.y - o.y) > 0.8f)
         {
-            Debug.Log("1");
             direction = CharDirection.Right;
             angle = 90;
         }
         else if (d.y < o.y && Mathf.Abs(d.y - o.y) > 0.8f)
         {
-            Debug.Log("2");
             direction = CharDirection.Right;
             angle = 270;
         }
         else if (d.x < o.x)
         {
-            Debug.Log("3");
             direction = CharDirection.Right;
             angle = 0;
         }
         else if (d.x > o.x)
         {
-            Debug.Log("4");
-            direction = CharDirection.Left ;
+            direction = CharDirection.Left;
             angle = 180;
         }
         darrow.transform.eulerAngles = new Vector3(0, 0, angle);
@@ -238,11 +239,11 @@ public class Character : MonoBehaviour
 
     void AttackController()
     {
-        // Attack_interval状态下倒计时
-        if (state == CharacterState.Attack_interval)
+        // 攻击动画期间与间隔期间同步倒计时，使攻击周期 = max(攻速公式间隔, 动画时长)
+        if (state == CharacterState.Attack || state == CharacterState.Attack_interval)
         {
             attackTimer -= Time.deltaTime;
-            if (attackTimer <= 0)
+            if (attackTimer <= 0 && state == CharacterState.Attack_interval)
             {
                 state = CharacterState.Idle;
             }
@@ -252,6 +253,7 @@ public class Character : MonoBehaviour
         CleanDeadEnemies();
 
         enemies = attackController.GetEnemies();
+        PrioritizeBlockedEnemies();
 
         // 只有在Idle状态下才能开始攻击
         if (enemies.Count <= 0 || state != CharacterState.Idle)
@@ -274,9 +276,32 @@ public class Character : MonoBehaviour
 
         if (hasLivingEnemies)
         {
-            attackTimer = charData.atk_interval;
+            attackTimer = GameFormula.AttackInterval(charData.atk_interval, charData.attack_speed);
             state = CharacterState.Attack;
         }
+    }
+
+    /// <summary>
+    /// 官方索敌（我方）：近战单位优先攻击自己正阻挡的敌人，其余保持“最早进入攻击范围”顺序。
+    /// </summary>
+    void PrioritizeBlockedEnemies()
+    {
+        List<GameObject> blocked = enemies.FindAll(obj =>
+        {
+            if (obj == null) return false;
+            Enemy enemy = obj.GetComponent<Enemy>();
+            return enemy != null && enemy.atk_target == this;
+        });
+
+        if (blocked.Count == 0 || blocked.Count == enemies.Count) return;
+
+        enemies.RemoveAll(obj =>
+        {
+            if (obj == null) return false;
+            Enemy enemy = obj.GetComponent<Enemy>();
+            return enemy != null && enemy.atk_target == this;
+        });
+        enemies.InsertRange(0, blocked);
     }
 
     void CleanDeadEnemies()
@@ -316,11 +341,24 @@ public class Character : MonoBehaviour
         switch (damage.type)
         {
             case DamageType.Physical:
-                charData.hp_current -= Mathf.Max(damage.damage - charData.def, 0.05f * damage.damage);
+                // max(0.05A, A - D)，结果按官方“就近取整”取整
+                charData.hp_current -= GameFormula.RoundHalfEven(
+                    Mathf.Max(damage.damage - charData.def, 0.05f * damage.damage));
                 break;
             case DamageType.Magic:
-                charData.hp_current -= Mathf.Max(damage.damage * (1 - 0.01f * charData.magic_def), 0.05f * damage.damage);
+                // max(0.05A, 0.01A * max(0, 100 - 法抗))，结果取整
+                charData.hp_current -= GameFormula.RoundHalfEven(
+                    Mathf.Max(0.01f * damage.damage * Mathf.Max(0f, 100f - charData.magic_def),
+                        0.05f * damage.damage));
                 break;
+            case DamageType.Real:
+                charData.hp_current -= GameFormula.RoundHalfEven(damage.damage);
+                break;
+            case DamageType.Recovery:
+                charData.hp_current = Mathf.Min(charData.hp_total,
+                    charData.hp_current + GameFormula.RoundHalfEven(damage.damage));
+                UpdateHealthBar();
+                return;
         }
 
         charData.hp_current = Mathf.Max(0, charData.hp_current);
@@ -378,8 +416,13 @@ public class Character : MonoBehaviour
         {
             skeletonAnimation.state.Complete -= OnSpineAnimationComplete;
         }
-        btn.gameObject.SetActive(true);
-        btn.StartRespawn(charData.respawn_time);
+        if (btn != null)
+        {
+            btn.gameObject.SetActive(true);
+            btn.StartRespawn(charData.respawn_time);
+        }
+        if (GameController.instance != null && state == CharacterState.Place)
+            GameController.instance.is_placing = false;
     }
     void UpdateDir()
     {

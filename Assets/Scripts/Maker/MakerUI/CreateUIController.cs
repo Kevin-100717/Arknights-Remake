@@ -1,4 +1,4 @@
-using GameData.EnemyData;
+using GameData.EnemyDatabase;
 using GameData.MapData;
 using NativeFileBrowser;
 using Newtonsoft.Json;
@@ -129,11 +129,6 @@ public class CreateUIController : MonoBehaviour
     //    }
     //    selectedEnemyContentTransform.sizeDelta = new Vector2(selectedEnemyContentTransform.sizeDelta.x, selectedEnemy.Count * 178.224f);
     //}
-    // Update is called once per frame
-    void Update()
-    {
-
-    }
     public string ReadData(string path)
     {
         string fileUrl = UnityEngine.Application.streamingAssetsPath + path;

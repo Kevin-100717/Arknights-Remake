@@ -1,6 +1,5 @@
-using GameData.MapData;
 using GameData.Game;
-using System.Collections;
+using GameData.MapData;
 using System.Collections.Generic;
 using UnityEngine;
 using Spine.Unity;
@@ -24,22 +23,31 @@ public class Enemy : MonoBehaviour
     [Header("Runtime State")]
     public EnemyState state;
     public Character atk_target;
-    public bool isReWrite = false; // 是否重写Update方法，重写后将不执行默认逻辑
-
-    // 新增：用于记录进入Shoot状态前的状态
+    public bool isReWrite = false;          // 重写 Update 后不执行默认逻辑
     public EnemyState stateBeforeShoot = EnemyState.Idle;
+    public bool isDead = false;
 
     private int currentPathIndex = -1;
-    private float pathWaitTime; // 路径等待时间专用计时器
-    private float attackIntervalTimer; // 攻击间隔专用计时器
+    private float pathWaitTime;             // 相对等待剩余时间（WAIT_FOR_SECONDS / DISAPPEAR）
+    private float pathWaitUntil = -1f;      // 绝对等待时刻（battleTime），-1 表示不使用
+    private int pathWaitUntilWave = -1;     // 波次数等待目标（WAIT_BOSSRUSH_WAVE），-1 表示不使用
+    private bool pausedForWaveRest;         // 处于 WAIT_BOSSRUSH_WAVE 休整中（暂时移出波次计数）
+    private float attackIntervalTimer;
     private SpineAnimationData currentAnim;
     private bool hasReachedEnd = false;
-    private bool onAttack = false;
-    public bool isDead = false;
+    private bool isInvulnerable = false;    // DISAPPEAR 期间无敌
     private Dictionary<EnemyState, SpineAnimationData> animationMap;
-    private EnemyState stateBeforeAttack = EnemyState.Idle; // 记录攻击前的状态
-    private Shoot shootComponent; // 对Shoot组件的引用
-    private bool wasInMeleeState = false; // 记录上一帧是否处于近战状态
+    private EnemyState stateBeforeAttack = EnemyState.Idle;
+    private Shoot shootComponent;
+    private FlyMove flyMove;
+    private MeshRenderer meshRenderer;
+    private Collider[] bodyColliders;
+    private bool wasInMeleeState = false;
+    private bool countedAsAlive = false;        // 是否计入场上存活计数（用于波次清怪等待）
+    private bool unharmfulCountAsKilled = false; // 行动完成时不扣血仅计数（isUnharmfulAndAlwaysCountAsKilled）
+
+    /// <summary>消失状态（DISAPPEAR 期间无敌且不可被选中）。</summary>
+    public bool IsDisappeared => isInvulnerable;
 
     void Awake()
     {
@@ -48,11 +56,9 @@ public class Enemy : MonoBehaviour
 
     void Start()
     {
-        if(isReWrite) return; // 如果重写了Update方法，跳过默认初始化逻辑
+        if (isReWrite) return;
         ValidateAndInitialize();
         BindSpineAnimationEvents();
-
-        // 获取Shoot组件引用
         shootComponent = GetComponent<Shoot>();
     }
 
@@ -74,22 +80,23 @@ public class Enemy : MonoBehaviour
 
         enemyType = enemyData.type;
         enemyData.hp_current = enemyData.hp_total;
-        state = EnemyState.Idle;
+        state = enemyData.haveStart ? EnemyState.Start : EnemyState.Idle;
 
+        flyMove = GetComponent<FlyMove>();
+        meshRenderer = GetComponent<MeshRenderer>();
+        bodyColliders = GetComponentsInChildren<Collider>(true);
+
+        float moveMultiplier = GameController.instance != null ? GameController.instance.moveMultiplier : 0.5f;
         if (enemyType == EnemyData.EnemyType.Normal)
         {
             moveController = GetComponent<EnemyMove>();
             if (moveController != null)
-                moveController.speed = enemyData.speed * 0.5f;
+                moveController.speed = enemyData.speed * moveMultiplier;
         }
-        else
+        else if (flyMove != null)
         {
-            FlyMove flyMove = GetComponent<FlyMove>();
-            if (flyMove != null)
-            {
-                flyMove.speed = enemyData.speed * 0.5f;
-                transform.position = new Vector3(transform.position.x, transform.position.y, -1);
-            }
+            flyMove.speed = enemyData.speed * moveMultiplier;
+            transform.position = new Vector3(transform.position.x, transform.position.y, -1);
         }
 
         if (hpUIController != null)
@@ -109,21 +116,10 @@ public class Enemy : MonoBehaviour
 
     void OnSpineAnimationStart(Spine.TrackEntry trackEntry)
     {
+        // 死亡动画开始时兜底释放阻挡位
         if (trackEntry.Animation.Name == GetAnimationName(EnemyState.Die))
-        {
-            // 在死亡动画开始时也释放阻挡位
-            if (atk_target != null)
-            {
-                if (atk_target.charData.current_def_num > 0)
-                {
-                    atk_target.charData.current_def_num--;
-                }
-            }
-            // 清空目标引用
-            atk_target = null;
-        }
+            ReleaseBlock();
     }
-
 
     void OnSpineAnimationComplete(Spine.TrackEntry trackEntry)
     {
@@ -131,55 +127,62 @@ public class Enemy : MonoBehaviour
 
         if (currentAnimationName == GetAnimationName(EnemyState.Attack))
         {
-            attackIntervalTimer = enemyData.atk_interval;
-            state = EnemyState.Attack_interval; // 改为Attack_interval状态
+            // 攻击间隔在出手时已开始计时，这里只转入间隔状态
+            state = EnemyState.Attack_interval;
         }
-        // 注意：Shoot 状态的完成通常不改变状态，
-        // 因为它是由 Shoot.cs 脚本控制返回原状态的。
         else if (currentAnimationName == GetAnimationName(EnemyState.Die))
         {
             isDead = true;
             Destroy(gameObject);
         }
-        // Shoot动画完成时的处理
-        else if (currentAnimationName == GetAnimationName(EnemyState.Shoot))
+        else if (currentAnimationName == GetAnimationName(EnemyState.Start))
         {
-            // Shoot动画完成后自动回到之前状态已在Shoot.cs中处理
-            // 这里可以留空或者做额外处理
+            state = EnemyState.Idle;
         }
+        // Shoot 动画的收尾由 Shoot.cs 处理
     }
 
-    string GetAnimationName(EnemyState state)
+    public string GetAnimationName(EnemyState state)
     {
         if (animationMap != null && animationMap.TryGetValue(state, out var data))
             return data.animationName;
         return "";
     }
 
+    /// <summary>按官方公式结算一次伤害/治疗。</summary>
     public void TakeDamage(Damage damage)
     {
-        if (isDead || state == EnemyState.Die) return;
+        if (isDead || state == EnemyState.Die || isInvulnerable) return;
 
         switch (damage.type)
         {
             case DamageType.Physical:
-                enemyData.hp_current -= Mathf.Max(damage.damage - enemyData.def, 0.05f * damage.damage);
+                // max(0.05A, A - D)，结果按官方“就近取整”取整
+                enemyData.hp_current -= GameFormula.RoundHalfEven(
+                    Mathf.Max(damage.damage - enemyData.def, 0.05f * damage.damage));
                 break;
             case DamageType.Magic:
-                enemyData.hp_current -= Mathf.Max(damage.damage * (1 - 0.01f * enemyData.magic_def), 0.05f * damage.damage);
+                // max(0.05A, 0.01A * max(0, 100 - 法抗))，结果取整
+                enemyData.hp_current -= GameFormula.RoundHalfEven(
+                    Mathf.Max(0.01f * damage.damage * Mathf.Max(0f, 100f - enemyData.magic_def),
+                        0.05f * damage.damage));
                 break;
+            case DamageType.Real:
+                enemyData.hp_current -= GameFormula.RoundHalfEven(damage.damage);
+                break;
+            case DamageType.Recovery:
+                enemyData.hp_current = Mathf.Min(enemyData.hp_total,
+                    enemyData.hp_current + GameFormula.RoundHalfEven(damage.damage));
+                UpdateHealthBar();
+                return;
         }
 
         enemyData.hp_current = Mathf.Max(0, enemyData.hp_current);
 
         if (enemyData.hp_current <= 0)
-        {
             Die();
-        }
         else
-        {
             UpdateHealthBar();
-        }
     }
 
     void Die()
@@ -190,29 +193,17 @@ public class Enemy : MonoBehaviour
         enemyData.hp_current = 0;
         state = EnemyState.Die;
 
-        // 释放阻挡位 - 这是关键修复！
-        if (atk_target != null)
-        {
-            if (atk_target.charData.current_def_num > 0)
-            {
-                atk_target.charData.current_def_num--;
-            }
-        }
+        ReleaseBlock();
 
-        // 重置所有与攻击相关的状态和引用
-        atk_target = null;
-        onAttack = false;
-        stateBeforeAttack = EnemyState.Idle;
-        stateBeforeShoot = EnemyState.Idle; // 也重置射击前状态
-
-        // 启用Shoot组件，以防死亡时被禁用
         if (shootComponent != null)
-        {
             shootComponent.enabled = true;
-        }
 
         if (hpUIController != null)
             hpUIController.hpBar.gameObject.SetActive(false);
+
+        // 只有真正被击杀才计入歼灭数
+        if (enemyData.dieAddToCount && GameController.instance != null)
+            GameController.instance.enemyCount++;
 
         PlayDeathAnimation();
     }
@@ -221,57 +212,65 @@ public class Enemy : MonoBehaviour
     {
         string deathAnimName = GetAnimationName(EnemyState.Die);
         if (!string.IsNullOrEmpty(deathAnimName))
-        {
             spineAnimation.state.SetAnimation(0, deathAnimName, false);
-        }
         else
-        {
             Destroy(gameObject);
-        }
     }
 
     void UpdateCheckPoint()
     {
+        // 出场动画结束前不推进路线
+        if (state == EnemyState.Start) return;
+
         currentPathIndex++;
 
-        // 如果还没走到最后一个 checkpoint，则按顺序处理
+        // 官方 PATROL_MOVE：巡逻点不会离开路径序列，走完后从第一个巡逻点循环
+        if (currentPathIndex >= route.Checkpoints.Count)
+        {
+            int patrol = FirstPatrolIndex();
+            if (patrol >= 0)
+                currentPathIndex = patrol;
+        }
+
         if (currentPathIndex < route.Checkpoints.Count)
         {
             ProcessCheckpoint();
             return;
         }
 
-        // 已经走过了所有的 checkpoints，现在开始往终点走
         if (!hasReachedEnd)
         {
+            // 官方 routes 坐标：row = 世界 y，col = 世界 x，直接使用
             Vector3 endPosition = new Vector3(
                 route.EndPosition.Col,
                 route.EndPosition.Row,
                 enemyType == EnemyData.EnemyType.Normal ? 0 : -1);
-
-            if (enemyType == EnemyData.EnemyType.Normal && moveController != null)
-            {
-                moveController.UpdatePath(endPosition);
-                state = EnemyState.Move;
-            }
-            else
-            {
-                FlyMove flyMove = GetComponent<FlyMove>();
-                if (flyMove != null)
-                {
-                    flyMove.SetTarget(endPosition);
-                    state = EnemyState.Move;
-                }
-            }
-
+            MoveTo(endPosition, true);
             hasReachedEnd = true;
         }
         else
         {
-            // 已经到达过终点 -> 扣血并销毁自己
-            GameController.instance.life--;
+            // 到达终点：只要设置计入歼灭数就计入；isUnharmfulAndAlwaysCountAsKilled 不扣血，
+            // 普通漏怪额外扣血
+            if (GameController.instance != null)
+            {
+                if (enemyData.dieAddToCount || unharmfulCountAsKilled)
+                    GameController.instance.enemyCount++;
+                if (!unharmfulCountAsKilled)
+                    GameController.instance.ReduceLife();
+            }
             Destroy(gameObject);
         }
+    }
+
+    int FirstPatrolIndex()
+    {
+        for (int i = 0; i < route.Checkpoints.Count; i++)
+        {
+            if (route.Checkpoints[i].Type == "PATROL_MOVE")
+                return i;
+        }
+        return -1;
     }
 
     void ProcessCheckpoint()
@@ -281,99 +280,234 @@ public class Enemy : MonoBehaviour
         switch (checkpoint.Type)
         {
             case "MOVE":
-                Vector3 targetPosition = GetPosition(currentPathIndex);
-
-                if (enemyType == EnemyData.EnemyType.Normal && moveController != null)
-                {
-                    moveController.UpdatePath(targetPosition);
-                    state = EnemyState.Move;
-                }
-                else
-                {
-                    FlyMove flyMove = GetComponent<FlyMove>();
-                    if (flyMove != null)
-                    {
-                        flyMove.SetTarget(new Vector3(targetPosition.x, targetPosition.y, -1));
-                        state = EnemyState.Move;
-                    }
-                }
+            case "PATROL_MOVE":
+                // MOVE 与 PATROL_MOVE 均移动到路点位置（巡逻点额外参与循环）
+                MoveTo(GetPosition(currentPathIndex), false);
                 break;
 
             case "WAIT_FOR_SECONDS":
+            case "WAIT_FOR_PLAY_TIME":
+            case "WAIT_CURRENT_FRAGMENT_TIME":
             case "WAIT_CURRENT_WAVE_TIME":
-                state = EnemyState.Idle;
-                pathWaitTime = checkpoint.Time; // 使用专用计时器
+            case "WAIT_BOSSRUSH_WAVE":
+                // 官方：停驻指令的 position 无意义（数据中恒为 0,0），
+                // 以前一条移动指令到达的位置为准，原地停留等待
+                EnterCheckpointWait();
                 break;
+
             case "DISAPPEAR":
-                GetComponent<MeshRenderer>().enabled = false;
+                // 官方：进入消失状态时立即停止攻击并解除阻挡，期间无敌、透明且不可被选中，
+                // 等待 Time 后执行下一步（期间发生任意移动则取消消失）
+                ReleaseBlock();
+                if (state == EnemyState.Attack || state == EnemyState.Attack_interval || state == EnemyState.EmptyIdle)
+                    state = EnemyState.Idle;
+                SetDisappeared(true);
+                ResetWaitFields();
+                pathWaitTime = checkpoint.Time;
+                state = EnemyState.Idle;
+                break;
+
+            case "APPEAR_AT_POS":
+                transform.position = GetPosition(currentPathIndex);
+                SetDisappeared(false);
                 UpdateCheckPoint();
                 break;
-            case "APPEAR_AT_POS":
-                GetComponent<MeshRenderer>().enabled = true;
-                transform.position = GetPosition(currentPathIndex);
+
+            default:
+                // 未知指令类型（如 ALERT）：警告并直接推进，避免路线卡死
+                Debug.LogWarning($"[Enemy] 未知路径点类型 '{checkpoint.Type}'，已跳过 ({gameObject.name})");
                 UpdateCheckPoint();
                 break;
         }
+    }
+
+    /// <summary>移动到目标路点（消失状态在移动开始时取消）。</summary>
+    void MoveTo(Vector3 targetPosition, bool isEnd)
+    {
+        // 官方：消失状态在发生任意移动后取消
+        if (isInvulnerable)
+            SetDisappeared(false);
+
+        if (enemyType == EnemyData.EnemyType.Normal && moveController != null)
+        {
+            moveController.UpdatePath(targetPosition);
+            state = EnemyState.Move;
+        }
+        else if (flyMove != null)
+        {
+            flyMove.SetTarget(new Vector3(targetPosition.x, targetPosition.y, isEnd ? targetPosition.z : -1));
+            state = EnemyState.Move;
+        }
+    }
+
+    /// <summary>停驻指令的计时分类（官方“停驻”按相对时刻划分的各变体）。</summary>
+    enum WaitMode
+    {
+        None,            // 非停驻指令
+        RelativeSeconds, // WAIT_FOR_SECONDS：到位置后计时
+        PlayTime,        // WAIT_FOR_PLAY_TIME：达到全局时刻
+        FragmentTime,    // WAIT_CURRENT_FRAGMENT_TIME：达到本兵团开始后的时刻
+        WaveTime,        // WAIT_CURRENT_WAVE_TIME：达到本波次开始后的时刻
+        BossRushWave,    // WAIT_BOSSRUSH_WAVE：移出当前波次，下x个波次后被移入
+    }
+
+    static WaitMode GetWaitMode(string type)
+    {
+        switch (type)
+        {
+            case "WAIT_FOR_SECONDS": return WaitMode.RelativeSeconds;
+            case "WAIT_FOR_PLAY_TIME": return WaitMode.PlayTime;
+            case "WAIT_CURRENT_FRAGMENT_TIME": return WaitMode.FragmentTime;
+            case "WAIT_CURRENT_WAVE_TIME": return WaitMode.WaveTime;
+            case "WAIT_BOSSRUSH_WAVE": return WaitMode.BossRushWave;
+            default: return WaitMode.None;
+        }
+    }
+
+    void ResetWaitFields()
+    {
+        pathWaitTime = 0f;
+        pathWaitUntil = -1f;
+        pathWaitUntilWave = -1;
+    }
+
+    /// <summary>
+    /// 抵达停驻路点后按分类开始等待：
+    /// WAIT_FOR_SECONDS 为相对时长；PLAY/FRAGMENT/WAVE_TIME 为“达到某时刻”；
+    /// WAIT_BOSSRUSH_WAVE 按波次数等待，并在此期间将自身移出波次清怪计数。
+    /// </summary>
+    void EnterCheckpointWait()
+    {
+        CheckpointEntity checkpoint = route.Checkpoints[currentPathIndex];
+        ResetWaitFields();
+
+        switch (GetWaitMode(checkpoint.Type))
+        {
+            case WaitMode.RelativeSeconds:
+                pathWaitTime = checkpoint.Time;
+                break;
+            case WaitMode.PlayTime:
+                pathWaitUntil = checkpoint.Time;
+                break;
+            case WaitMode.FragmentTime:
+                pathWaitUntil = EnemySpawner.CurrentFragmentStartTime + checkpoint.Time;
+                break;
+            case WaitMode.WaveTime:
+                pathWaitUntil = EnemySpawner.CurrentWaveStartTime + checkpoint.Time;
+                break;
+            case WaitMode.BossRushWave:
+                // 官方：将自身移出当前波次，于下x个波次后被移入，以当前状态重新出现
+                pathWaitUntilWave = EnemySpawner.CurrentWaveIndex + Mathf.Max(1, Mathf.RoundToInt(checkpoint.Time));
+                if (!pausedForWaveRest)
+                {
+                    pausedForWaveRest = true;
+                    EnemySpawner.NotifyEnemyRemoved(); // 休整期间不阻塞波次清怪等待
+                }
+                break;
+        }
+        state = EnemyState.Idle;
     }
 
     Vector3 GetPosition(int idx)
     {
         CheckpointEntity checkpoint = route.Checkpoints[idx];
+        // 官方 routes 坐标：row = 世界 y，col = 世界 x，直接使用（保留小数）；
+        // reachOffset 为相对方格中心的偏移，randomizeReachOffset 时在 ±|偏移| 内随机
+        float ox = checkpoint.ReachOffset.X;
+        float oy = checkpoint.ReachOffset.Y;
+        if (checkpoint.RandomizeReachOffset)
+        {
+            ox = Random.Range(-Mathf.Abs(ox), Mathf.Abs(ox));
+            oy = Random.Range(-Mathf.Abs(oy), Mathf.Abs(oy));
+        }
         return new Vector3(
-            (float)checkpoint.Position.Col + checkpoint.ReachOffset.X,
-            (float)checkpoint.Position.Row + checkpoint.ReachOffset.Y,
+            checkpoint.Position.Col + ox,
+            checkpoint.Position.Row + oy,
             0);
+    }
+
+    void SetDisappeared(bool hidden)
+    {
+        isInvulnerable = hidden;
+        if (meshRenderer == null) meshRenderer = GetComponent<MeshRenderer>();
+        if (meshRenderer != null) meshRenderer.enabled = !hidden;
+        if (bodyColliders == null) bodyColliders = GetComponentsInChildren<Collider>(true);
+        foreach (Collider col in bodyColliders)
+        {
+            if (col != null)
+                col.enabled = !hidden;
+        }
     }
 
     void UpdateAnimation()
     {
-        if (currentAnim == null || state != currentAnim.state)
+        if (currentAnim != null && state == currentAnim.state) return;
+
+        if (animationMap.TryGetValue(state, out currentAnim))
         {
-            if (animationMap.TryGetValue(state, out currentAnim))
-            {
-                spineAnimation.state.SetAnimation(0, currentAnim.animationName, currentAnim.loop);
-            }
+            spineAnimation.state.SetAnimation(0, currentAnim.animationName, currentAnim.loop);
+        }
+        else
+        {
+            Debug.LogError($"[Enemy] 缺少状态动画: {state} ({gameObject.name})");
+            // 占位避免同一状态每帧重复报错
+            currentAnim = new SpineAnimationData { state = state, animationName = "", loop = false };
         }
     }
 
     void Update()
     {
-        if (isDead) return;
-        UpdateAnimation();
-        if (isReWrite) return;
-        // 控制Shoot组件的启用/禁用
-        ControlShootComponent();
+        if (isDead || isReWrite) return;
 
+        ValidateBlockTarget();
+        ControlShootComponent();
         UpdateAnimation();
         ProcessState();
     }
 
-    /// <summary>
-    /// 控制Shoot组件的启用/禁用
-    /// </summary>
+    /// <summary>目标死亡/失效时释放阻挡并恢复到自由状态，避免卡死。</summary>
+    void ValidateBlockTarget()
+    {
+        bool engaged = state == EnemyState.Attack ||
+                       state == EnemyState.Attack_interval ||
+                       state == EnemyState.EmptyIdle;
+
+        bool targetValid = atk_target != null &&
+                           !atk_target.isDead &&
+                           atk_target.state != CharacterState.Die &&
+                           atk_target.state != CharacterState.Place &&
+                           atk_target.state != CharacterState.Start;
+
+        if (targetValid) return;
+
+        if (atk_target != null)
+            ReleaseBlock();
+
+        if (engaged)
+        {
+            state = GetFreeState();
+            attackIntervalTimer = 0f;
+        }
+    }
+
+    void ReleaseBlock()
+    {
+        if (atk_target != null && atk_target.charData != null && atk_target.charData.current_def_num > 0)
+            atk_target.charData.current_def_num--;
+        atk_target = null;
+    }
+
     void ControlShootComponent()
     {
-        bool isInMeleeState = (enemyData.haveNear &&
+        bool isInMeleeState = enemyData.haveNear &&
                               (state == EnemyState.Attack ||
                                state == EnemyState.Attack_interval ||
-                               state == EnemyState.EmptyIdle));
+                               state == EnemyState.EmptyIdle);
 
-        // 只有在状态真正改变时才操作组件
         if (isInMeleeState != wasInMeleeState)
         {
             if (shootComponent != null)
-            {
-                if (isInMeleeState)
-                {
-                    // 进入近战状态，禁用远程攻击
-                    shootComponent.enabled = false;
-                }
-                else
-                {
-                    // 退出近战状态，启用远程攻击
-                    shootComponent.enabled = true;
-                }
-            }
+                shootComponent.enabled = !isInMeleeState;
             wasInMeleeState = isInMeleeState;
         }
     }
@@ -382,124 +516,125 @@ public class Enemy : MonoBehaviour
     {
         switch (state)
         {
+            case EnemyState.Start:
+                break;
             case EnemyState.Move:
                 ProcessMovement();
                 break;
-
             case EnemyState.Idle:
                 ProcessIdle();
                 break;
-
-            case EnemyState.EmptyIdle: // 新增状态处理
-                ProcessEmptyIdle();
+            case EnemyState.EmptyIdle:
+                // 被阻挡但无攻击能力：原地站定，等待目标失效后由 ValidateBlockTarget 恢复
                 break;
-
-            case EnemyState.Attack_interval: // 处理Attack_interval状态
+            case EnemyState.Attack_interval:
                 ProcessAttackInterval();
                 break;
-
             case EnemyState.Attack:
-                ProcessAttack();
+                // 动画期间攻击间隔同步倒计时
+                attackIntervalTimer -= Time.deltaTime;
                 break;
-
-            case EnemyState.Shoot: // 新增状态处理
-                ProcessShoot();
+            case EnemyState.Shoot:
                 break;
-
             case EnemyState.Die:
-                // Die状态不需要特殊处理，动画完成后会Destroy
                 break;
         }
     }
 
     void ProcessMovement()
     {
+        bool reached;
         if (enemyType == EnemyData.EnemyType.Normal && moveController != null)
         {
             moveController.NextTarget();
-            if (moveController.reachedEndOfPath)
-            {
-                UpdateCheckPoint();
-            }
+            reached = moveController.reachedEndOfPath;
+        }
+        else if (flyMove != null)
+        {
+            flyMove.Move();
+            reached = flyMove.reachedEndOfPath;
         }
         else
         {
-            FlyMove flyMove = GetComponent<FlyMove>();
-            if (flyMove != null)
-            {
-                flyMove.Move();
-                if (flyMove.reachedEndOfPath)
-                {
-                    UpdateCheckPoint();
-                }
-            }
+            return;
         }
+
+        if (!reached) return;
+
+        // 到达后推进：下一条若是停驻指令则由 ProcessCheckpoint 原地进入等待
+        UpdateCheckPoint();
     }
 
+    /// <summary>
+    /// 停驻计时：相对秒数 → 绝对时刻 → 波次数，三类条件按序判定；
+    /// 全部满足后恢复自身波次计数并执行下一条指令。
+    /// </summary>
     void ProcessIdle()
     {
-        if (pathWaitTime > 0)
+        if (pathWaitTime > 0f)
         {
             pathWaitTime -= Time.deltaTime;
+            return;
         }
-        else
+
+        if (pathWaitUntil >= 0f)
         {
-            UpdateCheckPoint();
+            float now = GameController.instance != null ? GameController.instance.battleTime : Time.time;
+            if (now < pathWaitUntil) return;
+            pathWaitUntil = -1f;
         }
-    }
 
-    // 新增: EmptyIdle 状态下的处理逻辑
-    void ProcessEmptyIdle()
-    {
-        // 在此状态下，敌人什么都不做，只是站着不动。
-        // 可以在这里添加一些 idle 的行为，比如播放 idle 动画。
-        // 当前逻辑是空的，因为状态本身就意味着"等待"。
-    }
+        if (pathWaitUntilWave >= 0)
+        {
+            if (EnemySpawner.CurrentWaveIndex < pathWaitUntilWave) return;
+            pathWaitUntilWave = -1;
+            // 休整结束：以当前状态重新移入波次计数
+            if (pausedForWaveRest)
+            {
+                pausedForWaveRest = false;
+                EnemySpawner.NotifyEnemyAdded();
+            }
+        }
 
-    // 新增: Shoot 状态下的处理逻辑 (主要是动画播放)
-    void ProcessShoot()
-    {
-        // 动画播放由 Spine 控制，这里可以留空或做一些辅助逻辑
-        // 例如检查是否仍在范围内等，但这主要由 Shoot.cs 脚本管理
+        UpdateCheckPoint();
     }
 
     void ProcessAttackInterval()
     {
-        // Attack_interval倒计时
         attackIntervalTimer -= Time.deltaTime;
-        if (attackIntervalTimer <= 0)
+        if (attackIntervalTimer > 0f) return;
+
+        if (atk_target != null && !atk_target.isDead && atk_target.state != CharacterState.Die)
         {
-            // 检查目标是否还存在且存活
-            if (atk_target != null && !atk_target.isDead && atk_target.state != CharacterState.Die)
-            {
-                state = EnemyState.Attack; // 倒计时结束，继续攻击
-            }
-            else
-            {
-                // 目标已死亡或丢失，恢复到攻击前状态
-                state = stateBeforeAttack;
-                atk_target = null;
-                onAttack = false;
-            }
+            state = EnemyState.Attack;
+        }
+        else
+        {
+            ReleaseBlock();
+            state = GetFreeState();
         }
     }
 
-    void ProcessAttack()
+    /// <summary>由生成方调用，将该敌人计入场上存活数（波次清怪等待依赖此计数）。</summary>
+    public void NotifyAlive()
     {
-        // 攻击逻辑已经在DoDamage中处理
+        if (countedAsAlive) return;
+        countedAsAlive = true;
+        EnemySpawner.NotifyEnemyAdded();
+    }
+
+    public void SetUnharmfulCountAsKilled(bool value)
+    {
+        unharmfulCountAsKilled = value;
     }
 
     public void DoDamage()
     {
         if (isDead || atk_target == null) return;
-
-        // 再次检查目标是否存活，防止在动画播放期间目标死亡
         if (atk_target.isDead || atk_target.state == CharacterState.Die)
         {
-            // 目标已死亡，停止攻击并恢复状态
-            state = stateBeforeAttack;
-            atk_target = null;
-            onAttack = false;
+            ReleaseBlock();
+            state = GetFreeState();
             return;
         }
 
@@ -508,7 +643,7 @@ public class Enemy : MonoBehaviour
 
     void UpdateHealthBar()
     {
-        if (hpUIController == null) return;
+        if (hpUIController == null || enemyData.hp_total <= 0) return;
 
         hpUIController.hpBar.gameObject.SetActive(true);
         float ratio = enemyData.hp_current / enemyData.hp_total;
@@ -519,92 +654,77 @@ public class Enemy : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         if (isDead || state == EnemyState.Die) return;
+        if (atk_target != null) return; // 已被阻挡，不覆盖目标
+        if (!other.CompareTag("Character")) return;
 
-        if (other.gameObject.CompareTag("Character"))
+        Character character = other.GetComponent<Character>();
+        if (character == null ||
+            character.state == CharacterState.Die ||
+            character.state == CharacterState.Start ||
+            character.state == CharacterState.Place)
+            return;
+
+        // 阻挡位已满则继续移动
+        if (character.charData.current_def_num >= character.charData.def_num) return;
+
+        stateBeforeAttack = GetFreeState();
+        character.charData.current_def_num++;
+        atk_target = character;
+        // 官方攻速公式换算本次攻击的间隔
+        attackIntervalTimer = GameFormula.AttackInterval(enemyData.atk_interval, enemyData.attack_speed);
+
+        if (enemyData.haveNear)
         {
-            Character character = other.gameObject.GetComponent<Character>();
-            if (character != null &&
-                character.state != CharacterState.Die &&
-                character.state != CharacterState.Start &&
-                character.state != CharacterState.Place
-                )
-            {
-                // 新增逻辑: 检查敌人是否有近战能力
-                if (!enemyData.haveNear)
-                {
-                    // 没有近战能力，被阻挡时进入 EmptyIdle 状态
-                    // 检查是否还能被阻挡（def_num限制）
-                    if (character.charData.current_def_num < character.charData.def_num)
-                    {
-                        stateBeforeAttack = GetLastState();
-                        character.charData.current_def_num++; // 占用阻挡位
-                        atk_target = character; // 保留引用以便在退出时释放
-                        state = EnemyState.EmptyIdle; // 切换到空闲状态
-                        onAttack = false; // 不进行攻击
-                        return; // 结束，不执行下面的攻击逻辑
-                    }
-                    else
-                    {
-                        // 无法被阻挡，继续移动
-                        return;
-                    }
-                }
-
-                // 有近战能力，检查是否还能被阻挡
-                if (character.charData.current_def_num < character.charData.def_num)
-                {
-                    // 有近战能力，执行原有攻击逻辑
-                    // 记录攻击前的状态
-                    stateBeforeAttack = GetLastState();
-                    character.charData.current_def_num++;
-                    atk_target = character;
-                    state = EnemyState.Attack;
-                    onAttack = true;
-                    attackIntervalTimer = 0; // 重置攻击间隔计时器
-                }
-            }
-        }
-    }
-
-    EnemyState GetLastState()
-    {
-        if (state != EnemyState.EmptyIdle)
-        {
-            return state;
+            state = EnemyState.Attack;
         }
         else
         {
-            return stateBeforeAttack;
+            // 无近战能力：被阻挡后原地站定
+            state = EnemyState.EmptyIdle;
         }
     }
 
     private void OnTriggerExit(Collider other)
     {
         if (isDead || state == EnemyState.Die) return;
+        if (!other.CompareTag("Character")) return;
 
-        if (other.gameObject.CompareTag("Character"))
+        Character character = other.GetComponent<Character>();
+        if (character == null || character != atk_target) return;
+
+        ReleaseBlock();
+        state = GetFreeState();
+        attackIntervalTimer = 0f;
+    }
+
+    /// <summary>得到“未在攻击/射击时”的状态，避免把攻击态记成返回状态造成死循环。</summary>
+    EnemyState GetFreeState()
+    {
+        switch (state)
         {
-            Character character = other.gameObject.GetComponent<Character>();
-            if (character == atk_target)
-            {
-                // 释放阻挡位
-                if (character.charData.current_def_num > 0)
-                {
-                    character.charData.current_def_num--;
-                }
-
-                atk_target = null;
-                // 恢复到攻击前的状态
-                state = stateBeforeAttack;
-                onAttack = false;
-                attackIntervalTimer = 0; // 重置攻击间隔计时器
-            }
+            case EnemyState.Move:
+                return EnemyState.Move;
+            case EnemyState.Idle:
+            case EnemyState.Start:
+                return EnemyState.Idle;
+            default:
+                return stateBeforeAttack == EnemyState.Move || stateBeforeAttack == EnemyState.Idle
+                    ? stateBeforeAttack
+                    : EnemyState.Move;
         }
     }
 
     void OnDestroy()
     {
-        GameController.instance.enemyCount++;
+        // 兜底释放阻挡位（死亡与漏怪销毁路径都会经过这里）
+        if (atk_target != null && atk_target.charData != null && atk_target.charData.current_def_num > 0)
+            atk_target.charData.current_def_num--;
+        atk_target = null;
+
+        // 从场上存活计数中移除（波次清怪等待依赖此计数；休整中已被移出则不再扣减）
+        if (countedAsAlive && !pausedForWaveRest)
+            EnemySpawner.NotifyEnemyRemoved();
+
         if (spineAnimation != null && spineAnimation.state != null)
         {
             spineAnimation.state.Start -= OnSpineAnimationStart;

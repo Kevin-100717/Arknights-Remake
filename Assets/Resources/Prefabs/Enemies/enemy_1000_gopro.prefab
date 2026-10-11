@@ -275,11 +275,13 @@ MonoBehaviour:
       damage: 190
       type: 0
     atk_interval: 2
+    attack_speed: 100
     def: 0
     magic_def: 20
     speed: 1.9
     dieAddToCount: 1
     haveNear: 1
+    haveStart: 0
     type: 0
   hpUIController:
     hpBar: {fileID: 3238620992675061167}
@@ -287,6 +289,7 @@ MonoBehaviour:
     white: {fileID: 4194253665435982464}
   state: 0
   atk_target: {fileID: 0}
+  isReWrite: 0
   stateBeforeShoot: 3
   isDead: 0
 --- !u!114 &1039517677923540081

@@ -1,6 +1,4 @@
 using GameData.MapData;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -12,7 +10,7 @@ public class RouteUI : MonoBehaviour
     public Color clickedColor;
     public Color NormalColor;
     public RouteEntity routeData;
-    // Start is called before the first frame update
+
     void Start()
     {
         routeText.text = "ROUTE " + routeID.ToString();
@@ -25,10 +23,5 @@ public class RouteUI : MonoBehaviour
     {
         Color c = flag ? clickedColor : NormalColor;
         btnBg.color = c;
-    }
-    // Update is called once per frame
-    void Update()
-    {
-        
     }
 }

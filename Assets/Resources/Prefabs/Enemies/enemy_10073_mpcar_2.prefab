@@ -273,11 +273,13 @@ MonoBehaviour:
       damage: 360
       type: 0
     atk_interval: 2
+    attack_speed: 100
     def: 200
     magic_def: 25
     speed: 1.9
     dieAddToCount: 1
     haveNear: 1
+    haveStart: 0
     type: 0
   hpUIController:
     hpBar: {fileID: 3238620992675061167}

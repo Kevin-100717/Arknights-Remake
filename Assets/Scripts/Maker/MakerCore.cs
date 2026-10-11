@@ -5,7 +5,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
 using UnityEngine;
 
 public class MakerCore : MonoBehaviour
@@ -32,8 +31,7 @@ public class MakerCore : MonoBehaviour
         ViewRoute,
     }
     public EditMode editMode = EditMode.Normal;
-    // Start is called before the first frame update
-    void Start()
+    void Awake()
     {
         instance = this;
         mapLoader.mapDataJsonFilePath = "/exports/craft.json";
@@ -58,25 +56,65 @@ public class MakerCore : MonoBehaviour
     {
         save_path = isNew ? (Application.streamingAssetsPath + "/exports/temp.json") : path;
         BattleData battleData = JsonConvert.DeserializeObject<BattleData>(ReadData(save_path));
+        if (battleData?.MapData?.Map == null || battleData.MapData.Map.Count == 0)
+        {
+            Debug.LogError("[MakerCore] 关卡数据无效: " + save_path);
+            return;
+        }
+
         int width = battleData.MapData.Map[0].Count;
         int height = battleData.MapData.Map.Count;
         CreateUIController.instance.width = width;
         CreateUIController.instance.height = height;
-        foreach(RouteEntity ret in battleData.Routes)
+
+        ClearEditorState();
+
+        if (battleData.Routes != null)
+            foreach (RouteEntity ret in battleData.Routes)
+                CreateUIController.instance.LoadRouteItem(ret);
+
+        if (battleData.Waves != null && battleData.Waves.Count > 0 &&
+            battleData.Waves[0].Fragments != null && battleData.Waves[0].Fragments.Count > 0)
         {
-            CreateUIController.instance.LoadRouteItem(ret);
+            foreach (ActionEntity actionEntity in battleData.Waves[0].Fragments[0].Actions)
+                CreateUIController.instance.LoadEnemyDataItem(actionEntity);
         }
-        foreach(ActionEntity actionEntity in battleData.Waves[0].Fragments[0].Actions)
-        {
-            CreateUIController.instance.LoadEnemyDataItem(actionEntity);
-        }
+
         CreateNode(width, height);
-        for(int i=0;i<nodeObj.Count;i++)
+        // 官方数据中 tiles 是调色板，用 map 数组索引取地块；造图器自身格式下该写法同样成立
+        for (int row = 0; row < height; row++)
         {
-            nodeObj[i].GetComponent<MapNode>().setNodeByTileData(battleData.MapData.Tiles[i]);
+            for (int col = 0; col < width; col++)
+            {
+                int nodeIndex = (height - 1 - row) * width + col;
+                int tileIndex = battleData.MapData.Map[row][col];
+                nodeObj[nodeIndex].GetComponent<MapNode>().setNodeByTileData(battleData.MapData.Tiles[tileIndex]);
+            }
         }
         SaveFile("/exports/craft.json", false);
         mapLoader.Load();
+    }
+
+    /// <summary>重复加载地图前清空旧的节点与 UI 列表。</summary>
+    void ClearEditorState()
+    {
+        foreach (GameObject node in nodeObj)
+        {
+            if (node != null) Destroy(node);
+        }
+        nodeObj.Clear();
+
+        foreach (GameObject routeItem in CreateUIController.instance.routeUIItems)
+        {
+            if (routeItem != null) Destroy(routeItem);
+        }
+        CreateUIController.instance.routeUIItems.Clear();
+
+        foreach (GameObject enemyItem in CreateUIController.instance.enemyDataUIItems)
+        {
+            if (enemyItem != null) Destroy(enemyItem);
+        }
+        CreateUIController.instance.enemyDataUIItems.Clear();
     }
     // Update is called once per frame
     void Update()
@@ -114,10 +152,13 @@ public class MakerCore : MonoBehaviour
                     {
                         Destroy(child.gameObject);
                     }
-                    CheckpointEntity ckpte = routeEdited.Checkpoints[routeEdited.Checkpoints.Count-1];
-                    routeEdited.Checkpoints.Remove(ckpte);
-                    routeEdited.EndPosition = ckpte.Position;
-                    CreateUIController.instance.SetRouteDataByRouteUIId(editRouteID, routeEdited);
+                    if (routeEdited != null && routeEdited.Checkpoints.Count > 0)
+                    {
+                        CheckpointEntity ckpte = routeEdited.Checkpoints[routeEdited.Checkpoints.Count - 1];
+                        routeEdited.Checkpoints.Remove(ckpte);
+                        routeEdited.EndPosition = ckpte.Position;
+                        CreateUIController.instance.SetRouteDataByRouteUIId(editRouteID, routeEdited);
+                    }
                     editMode = EditMode.Normal;
                     ClearRouteLine();
                 }
@@ -207,6 +248,7 @@ public class MakerCore : MonoBehaviour
 
         List<Vector3> points = new List<Vector3>();
         List<int> types = new List<int>();
+        // 官方 routes 坐标：row = 世界 y，col = 世界 x，直接使用
         points.Add(new Vector3(routeEdited.StartPosition.Col, routeEdited.StartPosition.Row, 0));
         types.Add(0); // 起点type为0
 
@@ -314,7 +356,7 @@ public class MakerCore : MonoBehaviour
     }
     PositionEntity vecToPos(Vector3 p)
     {
-        Debug.Log(p);
+        // 官方 routes 坐标：row = 世界 y，col = 世界 x，直接记录
         return new PositionEntity
         {
             Row = p.y,
